@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Switch, Text, View } from "react-native";
 import { careerSeason, currentRating, RATING, suggestName, townTalk, wallEntryFor, type CareerState, type WallEntry } from "../engine";
 import { Body, Button, Card, Field, H2, Screen } from "../components/ui";
-import { colors, font } from "./theme";
+import { colors, type } from "./theme";
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 
@@ -27,7 +27,7 @@ export function CareerSetupScreen({ onStart, onBack }: { onStart: (name: string,
 function RatingBar({ rating }: { rating: number }) {
   const pct = (v: number) => `${(v / RATING.max) * 100}%` as const;
   return (
-    <View style={{ height: 14, borderRadius: 7, backgroundColor: "#e9e0cf", overflow: "hidden" }}>
+    <View style={{ height: 16, backgroundColor: colors.cardLo, borderWidth: 2, borderColor: colors.outline }}>
       <View style={{ width: pct(rating), height: "100%", backgroundColor: rating <= RATING.decayFloor ? colors.bad : colors.accent }} />
       <View style={{ position: "absolute", left: pct(RATING.retirementAt), top: 0, bottom: 0, width: 2, backgroundColor: colors.ink }} />
     </View>
@@ -46,15 +46,15 @@ export function OfficeScreen({ career, today, onForecast, onWall, onMenu }: { ca
           <View style={{ flex: 1 }}><Button kind="ghost" label="Menu" onPress={onMenu} /></View>
         </View></>}>
       {talk ? (
-        <Card style={{ backgroundColor: "#fff5d6", borderColor: colors.gold }}>
-          <Text style={{ fontSize: font.small, color: colors.muted, textTransform: "uppercase" }}>Around town</Text>
-          <Text testID="town-talk" style={{ fontSize: font.body, color: colors.ink, fontStyle: "italic", marginTop: 4 }}>“{talk}”</Text>
+        <Card tone="gold" style={{ gap: 6 }}>
+          <Text style={[type.label, { color: "#3a2e08" }]}>AROUND TOWN</Text>
+          <Text testID="town-talk" style={[type.body, { color: "#1a1406" }]}>“{talk}”</Text>
         </Card>
       ) : null}
       <Card style={{ gap: 8 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
           <H2>Standing in town</H2>
-          <Text testID="rating" style={{ fontSize: 24, fontWeight: "800", color: colors.ink }}>{rating}</Text>
+          <Text testID="rating" style={type.big}>{rating}</Text>
         </View>
         <RatingBar rating={rating} />
         <Body muted>The council retires a forecaster at {RATING.retirementAt}. Only bad calls can get you there.</Body>
@@ -92,7 +92,7 @@ export function FarewellScreen({ career, today, onContinue }: { career: CareerSt
 function WallCard({ e }: { e: WallEntry }) {
   return (
     <Card style={{ gap: 4 }}>
-      <H2>{e.name} <Text style={{ color: colors.muted, fontWeight: "400" }}>· {ordinal(e.generation)} forecaster</Text></H2>
+      <H2>{e.name} <Text style={{ color: colors.muted }}>· {ordinal(e.generation)}</Text></H2>
       <Body muted>{e.startedDate} → {e.retiredDate}</Body>
       <Body>{e.days} days · {e.perfectDays} perfect · best standing {e.peakRating}</Body>
       <Body>{e.howWentOut}</Body>
@@ -105,8 +105,8 @@ export function HistoryWallScreen({ career, today, onBack }: { career: CareerSta
   return (
     <Screen title="History Wall" subtitle="Every forecaster who held the station." footer={<Button kind="ghost" label="Back" onPress={onBack} />}>
       {career ? (
-        <Card style={{ gap: 4, borderColor: colors.accent }}>
-          <H2>{career.forecaster.name} <Text style={{ color: colors.muted, fontWeight: "400" }}>· on duty now</Text></H2>
+        <Card tone="sunk" style={{ gap: 4 }}>
+          <H2>{career.forecaster.name} <Text style={{ color: colors.gold }}>· on duty</Text></H2>
           <Body>{career.forecaster.dayCount} days · standing {currentRating(career, today)}</Body>
         </Card>
       ) : null}

@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { StatusBar } from "expo-status-bar";
+import { useFonts } from "expo-font";
+import { PressStart2P_400Regular } from "@expo-google-fonts/press-start-2p";
+import { VT323_400Regular } from "@expo-google-fonts/vt323";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   careerSources, currentStreak, dailyNumber, dailyResult, generateDailyDay, generateDay, isCareerRetired, mulberry32,
@@ -9,7 +12,7 @@ import {
   type CareerDayOutcome, type CareerState, type DailyState, type Day,
 } from "../engine";
 import { saves } from "../storage";
-import { Body, Button, Card, H2 } from "../components/ui";
+import { Body, Button, Card, H2, Panel } from "../components/ui";
 import { MenuScreen } from "./MenuScreen";
 import { Round } from "./Round";
 import { CareerSetupScreen, FarewellScreen, HistoryWallScreen, OfficeScreen } from "./CareerScreens";
@@ -38,6 +41,7 @@ export default function App() {
   const [today, setToday] = useState(todayUtc());
   const [lastCareerDay, setLastCareerDay] = useState<CareerDayOutcome | null>(null);
   const [copied, setCopied] = useState(false);
+  const [fontsLoaded] = useFonts({ PressStart2P_400Regular, VT323_400Regular });
 
   useEffect(() => {
     Promise.all([saves.loadDaily(), saves.loadCareer()]).then(([d, c]) => {
@@ -59,8 +63,8 @@ export default function App() {
 
   const todaysDaily = useMemo(() => generateDailyDay(today), [today]);
 
-  if (!loaded || !daily) {
-    return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}><ActivityIndicator /></View>;
+  if (!loaded || !daily || !fontsLoaded) {
+    return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}><ActivityIndicator color={colors.accent} /></View>;
   }
 
   let screen: React.ReactNode;
@@ -157,8 +161,8 @@ export default function App() {
           }}
           verdictExtra={out ? (
             <Card style={{ gap: 4 }}>
-              <H2>Standing in town: {out.ratingBefore} → {out.ratingAfter} ({signed(out.ratingAfter - out.ratingBefore)})</H2>
-              {out.retired ? <Body>The council has called a meeting…</Body> : null}
+              <H2>STANDING {out.ratingBefore} → {out.ratingAfter}  <H2 color={out.ratingAfter >= out.ratingBefore ? colors.good : colors.bad}>({signed(out.ratingAfter - out.ratingBefore)})</H2></H2>
+              {out.retired ? <Body>The council has called a meeting...</Body> : null}
             </Card>
           ) : null}
           verdictActions={out?.retired
@@ -189,7 +193,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       {screen}
     </SafeAreaProvider>
   );
@@ -198,10 +202,10 @@ export default function App() {
 function DailyShare({ text, streak, copied, onCopy }: { text: string; streak: number; copied: boolean; onCopy: (t: string) => void }) {
   return (
     <Card style={{ gap: 8 }}>
-      <H2>Share your day</H2>
-      <View style={{ backgroundColor: "#fff", borderRadius: 10, padding: 12, borderWidth: 1, borderColor: colors.line }}>
+      <H2>SHARE YOUR DAY</H2>
+      <Panel tone="sunk" style={{ padding: 12 }}>
         <Body>{text}</Body>
-      </View>
+      </Panel>
       <Button testID="copy-share" kind="ghost" label={copied ? "Copied ✓" : "Copy to clipboard"} onPress={() => onCopy(text)} />
       <Body muted>{streak > 0 ? `Daily streak: ${streak}. ` : ""}Come back tomorrow for a new sky.</Body>
     </Card>

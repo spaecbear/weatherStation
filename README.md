@@ -2,7 +2,7 @@
 
 A cozy, turn-based forecasting game. See `Weather Station Design Doc.pdf` and `weather-station-build-plan.md`.
 
-**Status: Phase 1 (core engine) complete.** Pure TypeScript in `src/engine`, no UI yet.
+**Status: Phases 1–3 complete, plus an early 16-bit art pass.** The engine is pure TypeScript in `src/engine`; the Expo app is in `src/app`.
 
 ```bash
 npm install
@@ -72,3 +72,30 @@ The flow is: Station (signal cards, tap for an explanation) → Forecast (5-step
 - Playback runs 30–60 s. Hours near a question's deciding moment slow down, and the deciding hour lingers longer the closer the roll was to flipping (`PLAYBACK` in `config.ts`).
 - You can't go back once you submit; Android's hardware back button is blocked too. Skip appears only after you've watched that day once ("Watch again").
 - The app starts on the fixed dev seed `20261123`; "New random day (dev)" rolls a fresh one. The prototype scores in career mode, so the +2 trickle shows.
+
+## Phase 3: modes and saving
+
+- **Menu:** Daily, Career, Zen, History Wall.
+- **Daily** (`engine/daily.ts`): the seed and the reset both use the **UTC date** (#1 = 2026-01-01). There's one attempt per day: the calls are saved the moment you lock in, before playback, and the result is recomputed from the seed whenever it's needed. A streak survives until you miss a whole UTC day. The share card shows the weather emoji grid, x/3, "Perfect Forecast" and the number of bold calls, never the calls themselves.
+- **Career** (`engine/career.ts`): the save holds the forecaster, rating anchor, last played date, day history and history wall.
+  - Decay is computed on open from `ratingAtLastPlay` + `lastPlayedDate`, so reopening the app never double-charges.
+  - Decay appears as town talk, not numbers.
+  - Retirement is checked after every scored day. On succession, the retiree goes up on the history wall and an apprentice starts at 500. The journal and the wall are kept; equipment, money and client trust are reset (stubs until Phase 4/5).
+  - Hardcore wipes the whole save.
+  - Career days are deterministic: `subSeed(seedBase, "career:<generation>:<day>")`. Seasons change every 28 career days.
+- **Zen:** endless random days with nothing saved.
+- **Storage** (`src/storage`): AsyncStorage holds two versioned JSON blobs, `ws.career.v1` and `ws.daily.v1`. A corrupt or old save loads as empty instead of crashing. I chose AsyncStorage over SQLite because the data is small, always read whole, and written once per day, so a relational store adds nothing.
+- **Mocked clock:** the engine takes `today` as an argument everywhere, and the tests use fixed dates. In the app, `?today=YYYY-MM-DD` (web) or the menu's "Dev +1 day" button shifts "today".
+
+## Art: 16-bit, slate storm theme
+
+- **Palette and type:** a slate storm-cloud palette (`src/app/theme.ts`). Press Start 2P for headings and buttons; VT323 for body text.
+- **UI chrome:** square, bevelled panels with hard drop shadows (`Panel` in `components/ui.tsx`).
+- **Pixel art:** all of it is ASCII in `components/pixelArt.ts` (signal and menu icons, clouds, sun, bolt, houses, the station and the windsock). `Sprite` draws it as run-length-encoded Views, so no image assets or SVG library are needed.
+- **The weather scene** (`components/Sky.tsx`) is drawn on a logical pixel grid:
+  - a banded sky that shifts with dawn, midday, dusk and storms
+  - drifting clouds, slanted rain, and lightning flashes on heavy-rain days
+  - fog bands
+  - a ridge and the town, with windows that light up at dusk or in a storm
+  - the station windsock, which goes limp, half or full with the wind
+  - a pixel thermometer

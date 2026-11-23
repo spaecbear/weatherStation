@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Button, Screen } from "../components/ui";
+import { Text, View } from "react-native";
+import { Button, Panel, Screen } from "../components/ui";
 import { lerpSnapshot, Sky } from "../components/Sky";
 import type { RoundModel } from "./useRound";
-import { colors, font, radius } from "./theme";
+import { colors, type } from "./theme";
 import { formatHour } from "./signalText";
 
 /** Where we are in the schedule after `elapsed` ms: step index + fraction through it. */
@@ -56,7 +56,7 @@ export function PlaybackScreen({ m }: { m: RoundModel }) {
   return (
     <Screen
       title={formatHour(snap.hour)}
-      subtitle={slowing ? "Time slows… watch the sky." : "The day plays out."}
+      subtitle={slowing ? "Time slows... watch the sky." : "The day plays out."}
       footer={m.canSkipPlayback ? <Button kind="ghost" label="Skip to the verdict" onPress={m.finishPlayback} /> : undefined}
     >
       <Sky snap={snap} timeMs={elapsed} />
@@ -65,23 +65,14 @@ export function PlaybackScreen({ m }: { m: RoundModel }) {
         const shown = revealed.has(q.id);
         const hot = focus.has(q.id);
         return (
-          <View key={q.id} style={[s.chip, hot && s.hot, shown && (r.outcome ? s.yes : s.no)]}>
-            <Text style={[s.q, hot && { fontWeight: "700" }]}>{q.text}</Text>
-            <Text style={s.answer}>
-              {shown ? (r.outcome ? "YES" : "NO") : hot ? "…" : `You said ${Math.round(m.calls[q.id]! * 100)}%`}
+          <Panel key={q.id} tone={hot ? "gold" : shown && r.outcome ? "accent" : shown ? "sunk" : "card"} style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12 }}>
+            <Text style={[type.body, { flex: 1, color: hot || (shown && r.outcome) ? "#14181e" : colors.ink }]}>{q.text}</Text>
+            <Text style={[type.h2, { color: hot || (shown && r.outcome) ? "#14181e" : colors.ink }]}>
+              {shown ? (r.outcome ? "YES" : "NO") : hot ? "..." : `${Math.round(m.calls[q.id]! * 100)}%`}
             </Text>
-          </View>
+          </Panel>
         );
       })}
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  chip: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: radius, borderWidth: 2, borderColor: colors.line, backgroundColor: colors.card },
-  hot: { borderColor: colors.gold, backgroundColor: "#fff5d6" },
-  yes: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  no: { borderColor: colors.line, backgroundColor: "#eee8dc" },
-  q: { flex: 1, fontSize: font.body, color: colors.ink },
-  answer: { fontSize: font.body, fontWeight: "700", color: colors.ink },
-});

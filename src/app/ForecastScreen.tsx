@@ -1,10 +1,12 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { forecastBounds, stakePreview, type Step } from "../engine";
 import { Button, Card, Screen } from "../components/ui";
 import { StepSelector } from "../components/StepSelector";
 import type { RoundModel } from "./useRound";
-import { colors, font } from "./theme";
+import { colors, type } from "./theme";
 import { signed } from "./signalText";
+
+const Stake = ({ n }: { n: number }) => <Text style={{ color: n > 0 ? colors.good : n < 0 ? colors.bad : colors.muted }}>{signed(n)}</Text>;
 
 export function ForecastScreen({ m }: { m: RoundModel }) {
   const qs = m.day.questions;
@@ -15,11 +17,11 @@ export function ForecastScreen({ m }: { m: RoundModel }) {
   return (
     <Screen
       title="Your Forecast"
-      subtitle="Pick a confidence for each. Once you submit, it's locked."
+      subtitle="Pick a confidence for each. Once you lock it in, it's final."
       footer={
         <>
-          <Text style={s.bounds} testID="bounds">
-            {bounds ? `Best case ${signed(bounds.best)} · Worst case ${signed(bounds.worst)}` : "Answer all three to see the stakes"}
+          <Text style={[type.label, { textAlign: "center", color: colors.ink }]} testID="bounds">
+            {bounds ? <>BEST <Stake n={bounds.best} />  ·  WORST <Stake n={bounds.worst} /></> : "ANSWER ALL THREE TO SEE THE STAKES"}
           </Text>
           <Button testID="submit" label="Lock it in" disabled={!complete} onPress={m.submit} />
           <Button kind="ghost" label="Back to the station" onPress={() => m.setPhase("station")} />
@@ -31,10 +33,10 @@ export function ForecastScreen({ m }: { m: RoundModel }) {
         const stake = v !== undefined ? stakePreview(v) : null;
         return (
           <Card key={q.id} style={{ gap: 10 }}>
-            <Text style={s.q}>{i + 1}. {q.text}</Text>
+            <Text style={type.h2}>{i + 1}. {q.text}</Text>
             <StepSelector testID={`sel-${q.id}`} value={v} onChange={(step) => m.setCalls({ ...m.calls, [q.id]: step })} />
-            <Text style={s.stake} testID={`stake-${q.id}`}>
-              {stake ? `If yes: ${signed(stake.ifYes)}. If no: ${signed(stake.ifNo)}.` : "How sure are you it happens?"}
+            <Text style={[type.body, { color: colors.muted }]} testID={`stake-${q.id}`}>
+              {stake ? <>If yes: <Stake n={stake.ifYes} />. If no: <Stake n={stake.ifNo} />.</> : "How sure are you it happens?"}
             </Text>
           </Card>
         );
@@ -43,9 +45,3 @@ export function ForecastScreen({ m }: { m: RoundModel }) {
     </Screen>
   );
 }
-
-const s = StyleSheet.create({
-  q: { fontSize: font.h2, fontWeight: "600", color: colors.ink },
-  stake: { fontSize: font.body, color: colors.muted },
-  bounds: { textAlign: "center", fontSize: font.body, color: colors.ink, fontWeight: "600" },
-});

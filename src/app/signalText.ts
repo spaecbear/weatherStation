@@ -51,4 +51,4 @@ export function formatSignal(s: Signal): string {
 
 export const formatHour = hour12;
 export const pct = (p: number) => `${Math.round(p * 100)}%`;
-export const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : "0");
+export const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `-${Math.abs(n)}` : "0"); // ASCII minus: the pixel font has no U+2212

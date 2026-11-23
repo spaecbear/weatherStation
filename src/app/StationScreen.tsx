@@ -1,27 +1,23 @@
-import { StyleSheet, Text } from "react-native";
+import { Text } from "react-native";
 import { Button, Screen } from "../components/ui";
 import { SignalCard } from "../components/SignalCard";
 import type { RoundModel } from "./useRound";
-import { colors, font } from "./theme";
+import { colors, type } from "./theme";
 
 export function StationScreen({ m, subtitle, onLeave }: { m: RoundModel; subtitle: string; onLeave: () => void }) {
   return (
     <Screen
       title="The Station"
-      subtitle={`${subtitle} · a ${m.day.state.season} morning`}
+      subtitle={`${subtitle} · ${m.day.state.season === "autumn" ? "an" : "a"} ${m.day.state.season} morning`}
       footer={
         <>
-          <Button testID="to-forecast" label="Make today's forecast" onPress={() => m.setPhase("forecast")} />
+          <Button testID="to-forecast" label="Make the forecast" onPress={() => m.setPhase("forecast")} />
           <Button kind="ghost" label="Back" onPress={onLeave} />
         </>
       }
     >
-      <Text style={s.hint}>Tap a reading to see what it tells you.</Text>
-      {m.signals.map((sig) => (
-        <SignalCard key={sig.source} signal={sig} />
-      ))}
+      <Text style={[type.body, { color: colors.muted }]}>Tap a reading to see what it tells you.</Text>
+      {m.signals.map((sig) => <SignalCard key={sig.source} signal={sig} />)}
     </Screen>
   );
 }
-
-const s = StyleSheet.create({ hint: { color: colors.muted, fontSize: font.small } });

@@ -1,9 +1,14 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
-import { Button, Card, Screen } from "../components/ui";
+import { Animated, Text, View } from "react-native";
+import { Card, Panel, Screen } from "../components/ui";
+import { Icon } from "../components/Sprite";
+import { SUN } from "../components/pixelArt";
 import type { RoundModel } from "./useRound";
-import { colors, font } from "./theme";
+import { colors, type } from "./theme";
 import { signed } from "./signalText";
+import { Button } from "../components/ui";
+
+const repColor = (n: number) => (n > 0 ? colors.good : n < 0 ? colors.bad : colors.muted);
 
 export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: ReactNode; actions: ReactNode }) {
   const score = m.result!.score;
@@ -15,17 +20,18 @@ export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: Re
   return (
     <Screen
       title="The Verdict"
-      footer={
-        <>
-          {actions}
-          <Button kind="ghost" label="Watch the day again" onPress={() => m.setPhase("playback")} />
-        </>
-      }
+      footer={<>{actions}<Button kind="ghost" label="Watch the day again" onPress={() => m.setPhase("playback")} /></>}
     >
       {score.perfectBonus > 0 ? (
-        <Animated.View style={[s.perfect, { transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }], opacity: pop }]}>
-          <Text style={s.perfectTitle}>☀️ Perfect Forecast ☀️</Text>
-          <Text style={s.perfectSub}>All three on the right side · bonus {signed(score.perfectBonus)}</Text>
+        <Animated.View style={{ transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }], opacity: pop }}>
+          <Panel tone="gold" style={{ padding: 14, alignItems: "center", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+              <Icon rows={SUN} palette={{ y: "#c4571f", Y: "#fff" }} px={3} />
+              <Text style={[type.big, { color: "#1a1406" }]}>PERFECT!</Text>
+              <Icon rows={SUN} palette={{ y: "#c4571f", Y: "#fff" }} px={3} />
+            </View>
+            <Text style={[type.body, { color: "#1a1406" }]}>All three on the right side · bonus {signed(score.perfectBonus)}</Text>
+          </Panel>
         </Animated.View>
       ) : null}
 
@@ -33,23 +39,23 @@ export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: Re
         const qs = score.questions.find((x) => x.questionId === q.id)!;
         const d = m.debriefs.find((x) => x.questionId === q.id)!;
         return (
-          <Card key={q.id} style={{ gap: 6 }}>
-            <Text style={s.q}>{q.text}</Text>
-            <View style={s.row}>
-              <Text style={s.meta}>You said {Math.round(qs.forecast * 100)}% · it was {qs.outcome ? "YES" : "NO"}</Text>
-              <Text style={[s.rep, { color: qs.rep > 0 ? colors.good : qs.rep < 0 ? colors.bad : colors.muted }]}>{signed(qs.rep)}</Text>
+          <Card key={q.id} style={{ gap: 8 }}>
+            <Text style={type.h2}>{q.text}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={[type.body, { color: colors.muted }]}>You said {Math.round(qs.forecast * 100)}% · it was {qs.outcome ? "YES" : "NO"}</Text>
+              <Text style={[type.big, { color: repColor(qs.rep) }]}>{signed(qs.rep)}</Text>
             </View>
-            <Text style={s.debrief}>{d.line}</Text>
+            <Text style={[type.body, { color: colors.accentHi }]}>{d.line}</Text>
           </Card>
         );
       })}
 
-      <Card style={{ gap: 4 }}>
+      <Card style={{ gap: 6 }}>
         {score.perfectBonus > 0 ? <Line label="Perfect day bonus" value={score.perfectBonus} /> : null}
         {score.trickle > 0 ? <Line label="Showing up" value={score.trickle} /> : null}
-        <View style={s.row}>
-          <Text style={s.totalLabel}>Today</Text>
-          <Text style={s.total} testID="total">{signed(score.total)} rep</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={type.h2}>TODAY</Text>
+          <Text style={[type.big, { color: repColor(score.total) }]} testID="total">{signed(score.total)} REP</Text>
         </View>
       </Card>
       {extra}
@@ -59,22 +65,9 @@ export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: Re
 
 function Line({ label, value }: { label: string; value: number }) {
   return (
-    <View style={s.row}>
-      <Text style={s.meta}>{label}</Text>
-      <Text style={s.meta}>{signed(value)}</Text>
+    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      <Text style={[type.body, { color: colors.muted }]}>{label}</Text>
+      <Text style={[type.body, { color: colors.muted }]}>{signed(value)}</Text>
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  perfect: { backgroundColor: colors.gold, borderRadius: 16, padding: 16, alignItems: "center" },
-  perfectTitle: { fontSize: 22, fontWeight: "800", color: "#fff" },
-  perfectSub: { color: "#fff", marginTop: 4 },
-  q: { fontSize: font.h2, fontWeight: "600", color: colors.ink },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  meta: { fontSize: font.body, color: colors.muted },
-  rep: { fontSize: font.h2, fontWeight: "800" },
-  debrief: { fontSize: font.body, color: colors.ink, fontStyle: "italic", lineHeight: 21 },
-  totalLabel: { fontSize: font.h2, fontWeight: "700", color: colors.ink },
-  total: { fontSize: 22, fontWeight: "800", color: colors.ink },
-});
