@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, font, radius } from "../app/theme";
 
@@ -49,3 +49,26 @@ const s = StyleSheet.create({
   btnText: { color: "#fff", fontSize: font.h2, fontWeight: "700" },
   btnGhostText: { color: colors.ink, fontWeight: "600", fontSize: font.body },
 });
+
+export function Field({ label, value, onChange, testID }: { label: string; value: string; onChange: (v: string) => void; testID?: string }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontSize: font.small, color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
+      <TextInput
+        testID={testID}
+        value={value}
+        onChangeText={onChange}
+        maxLength={24}
+        style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: colors.line, borderRadius: radius, padding: 12, fontSize: font.h2, color: colors.ink }}
+      />
+    </View>
+  );
+}
+
+export function Body({ children, muted }: { children: ReactNode; muted?: boolean }) {
+  return <Text style={{ fontSize: font.body, lineHeight: 22, color: muted ? colors.muted : colors.ink }}>{children}</Text>;
+}
+
+export function H2({ children }: { children: ReactNode }) {
+  return <Text style={{ fontSize: font.h2, fontWeight: "700", color: colors.ink }}>{children}</Text>;
+}

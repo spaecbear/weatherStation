@@ -1,11 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import { Button, Card, Screen } from "../components/ui";
-import type { DayModel } from "./useDay";
+import type { RoundModel } from "./useRound";
 import { colors, font } from "./theme";
 import { signed } from "./signalText";
 
-export function VerdictScreen({ m }: { m: DayModel }) {
+export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: ReactNode; actions: ReactNode }) {
   const score = m.result!.score;
   const pop = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -17,11 +17,8 @@ export function VerdictScreen({ m }: { m: DayModel }) {
       title="The Verdict"
       footer={
         <>
-          <Button testID="next-day" label="New random day (dev)" onPress={m.randomDay} />
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1 }}><Button kind="ghost" label="Watch again" onPress={() => m.setPhase("playback")} /></View>
-            <View style={{ flex: 1 }}><Button kind="ghost" label="Dev day" onPress={m.devDay} /></View>
-          </View>
+          {actions}
+          <Button kind="ghost" label="Watch the day again" onPress={() => m.setPhase("playback")} />
         </>
       }
     >
@@ -55,6 +52,7 @@ export function VerdictScreen({ m }: { m: DayModel }) {
           <Text style={s.total} testID="total">{signed(score.total)} rep</Text>
         </View>
       </Card>
+      {extra}
     </Screen>
   );
 }

@@ -2,11 +2,11 @@ import { StyleSheet, Text, View } from "react-native";
 import { forecastBounds, stakePreview, type Step } from "../engine";
 import { Button, Card, Screen } from "../components/ui";
 import { StepSelector } from "../components/StepSelector";
-import type { DayModel } from "./useDay";
+import type { RoundModel } from "./useRound";
 import { colors, font } from "./theme";
 import { signed } from "./signalText";
 
-export function ForecastScreen({ m }: { m: DayModel }) {
+export function ForecastScreen({ m }: { m: RoundModel }) {
   const qs = m.day.questions;
   const chosen = qs.map((q) => m.calls[q.id]);
   const complete = chosen.every((c): c is Step => c !== undefined);

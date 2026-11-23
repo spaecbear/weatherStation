@@ -86,3 +86,13 @@ export const PLAYBACK = {
   minTotalSeconds: 30,
   maxTotalSeconds: 60,
 };
+
+/** Daily Forecast (Phase 3). The daily seed and reset use the UTC date. */
+export const DAILY = {
+  epoch: "2026-01-01", // Weather Station #1
+};
+
+export const CAREER = {
+  daysPerSeason: 28,
+  historyLimit: 1000, // day records kept per forecaster
+};

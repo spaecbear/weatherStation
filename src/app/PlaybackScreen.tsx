@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button, Screen } from "../components/ui";
 import { lerpSnapshot, Sky } from "../components/Sky";
-import type { DayModel } from "./useDay";
+import type { RoundModel } from "./useRound";
 import { colors, font, radius } from "./theme";
 import { formatHour } from "./signalText";
 
@@ -17,7 +17,7 @@ function locate(durations: number[], elapsed: number): { i: number; frac: number
   return { i: durations.length - 1, frac: 1, done: true };
 }
 
-export function PlaybackScreen({ m }: { m: DayModel }) {
+export function PlaybackScreen({ m }: { m: RoundModel }) {
   const { schedule, result, day } = m;
   const timeline = result!.resolution.timeline;
   const durations = useMemo(() => schedule.map((s) => s.durationMs), [schedule]);

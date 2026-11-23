@@ -1,19 +1,18 @@
 import { StyleSheet, Text } from "react-native";
 import { Button, Screen } from "../components/ui";
 import { SignalCard } from "../components/SignalCard";
-import type { DayModel } from "./useDay";
+import type { RoundModel } from "./useRound";
 import { colors, font } from "./theme";
 
-export function StationScreen({ m }: { m: DayModel }) {
-  const season = m.day.state.season;
+export function StationScreen({ m, subtitle, onLeave }: { m: RoundModel; subtitle: string; onLeave: () => void }) {
   return (
     <Screen
       title="The Station"
-      subtitle={`A ${season} morning · Day #${m.seed}`}
+      subtitle={`${subtitle} · a ${m.day.state.season} morning`}
       footer={
         <>
           <Button testID="to-forecast" label="Make today's forecast" onPress={() => m.setPhase("forecast")} />
-          <Button kind="ghost" label="New random day (dev)" onPress={m.randomDay} />
+          <Button kind="ghost" label="Back" onPress={onLeave} />
         </>
       }
     >
