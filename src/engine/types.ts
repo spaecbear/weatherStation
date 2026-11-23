@@ -10,9 +10,9 @@ export interface HiddenState {
   humidity: number; // 0..1
   frontStrength: number; // 0..1
   frontArrivalHour: number; // hour of day (may be outside 6–21 = not today)
-  tempBaseline: number; // °C expected high
-  windSpeed: number; // km/h surface
-  upperWinds: number; // km/h aloft
+  tempBaseline: number; // °F expected high
+  windSpeed: number; // mph surface
+  upperWinds: number; // mph aloft
 }
 
 export type QuestionType = "rainToday" | "rainBeforeNoon" | "highAbove" | "windAbove" | "fogAtDawn";
@@ -20,7 +20,7 @@ export type QuestionType = "rainToday" | "rainBeforeNoon" | "highAbove" | "windA
 export interface Question {
   id: string;
   type: QuestionType;
-  threshold?: number; // °C for highAbove, km/h for windAbove
+  threshold?: number; // °F for highAbove, mph for windAbove
   text: string;
   /** Hidden from the player. */
   trueProbability: number;
@@ -51,8 +51,8 @@ export interface HourSnapshot {
   hour: number;
   cloudCover: number; // 0..1
   rain: number; // mm/h
-  temperature: number; // °C
-  wind: number; // km/h
+  temperature: number; // °F
+  wind: number; // mph
   fog: boolean;
 }
 

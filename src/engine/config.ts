@@ -30,25 +30,25 @@ export const SEASON_PARAMS: Record<
     pressureTrend: [number, number]; // hPa per 3h
     humidity: [number, number]; // 0..1
     frontStrength: [number, number]; // 0..1
-    tempBaseline: [number, number]; // °C daily high expectation
-    windSpeed: [number, number]; // km/h
-    upperWinds: [number, number]; // km/h
+    tempBaseline: [number, number]; // °F daily high expectation
+    windSpeed: [number, number]; // mph
+    upperWinds: [number, number]; // mph
   }
 > = {
-  spring: { pressureTrend: [-0.3, 1.5], humidity: [0.62, 0.17], frontStrength: [0.45, 0.25], tempBaseline: [15, 4], windSpeed: [18, 8], upperWinds: [60, 25] },
-  summer: { pressureTrend: [0.2, 1.2], humidity: [0.52, 0.18], frontStrength: [0.3, 0.22], tempBaseline: [26, 4], windSpeed: [12, 6], upperWinds: [40, 20] },
-  autumn: { pressureTrend: [-0.4, 1.6], humidity: [0.66, 0.16], frontStrength: [0.5, 0.25], tempBaseline: [14, 4], windSpeed: [20, 9], upperWinds: [70, 25] },
-  winter: { pressureTrend: [0.0, 1.6], humidity: [0.7, 0.14], frontStrength: [0.45, 0.25], tempBaseline: [4, 4], windSpeed: [22, 9], upperWinds: [85, 30] },
+  spring: { pressureTrend: [-0.3, 1.5], humidity: [0.62, 0.17], frontStrength: [0.45, 0.25], tempBaseline: [60, 7], windSpeed: [11, 5], upperWinds: [37, 15] },
+  summer: { pressureTrend: [0.2, 1.2], humidity: [0.52, 0.18], frontStrength: [0.3, 0.22], tempBaseline: [80, 7], windSpeed: [8, 4], upperWinds: [25, 12] },
+  autumn: { pressureTrend: [-0.4, 1.6], humidity: [0.66, 0.16], frontStrength: [0.5, 0.25], tempBaseline: [58, 7], windSpeed: [12, 5], upperWinds: [43, 15] },
+  winter: { pressureTrend: [0.0, 1.6], humidity: [0.7, 0.14], frontStrength: [0.45, 0.25], tempBaseline: [38, 7], windSpeed: [14, 6], upperWinds: [53, 18] },
 };
 
 /** Logistic weights. Features are centered so `bias` ≈ 0 means a coin flip at average conditions. */
 export const WEIGHTS = {
-  rain: { humidity: 7.0, humidityCenter: 0.6, front: 4.5, frontCenter: 0.4, pressureTrend: 1.0, bias: -0.2 },
+  rain: { humidity: 3.5, humidityCenter: 0.6, front: 2.2, frontCenter: 0.4, pressureTrend: 0.45, bias: -0.1 },
   // P(rain before noon) = P(rain) * sigmoid((noonHour - frontArrival) / spread)
-  rainBeforeNoon: { noonHour: 12, spread: 2.0 },
-  high: { spread: 1.6, frontCooling: 3.0, thresholdJitterSd: 2.2 }, // °C
-  wind: { upperCoupling: 0.15, frontBoost: 10, spread: 4.0, thresholdJitterSd: 7 }, // km/h
-  fog: { humidity: 8.0, humidityCenter: 0.68, wind: 0.18, windCenter: 14, pressureTrend: 0.6, bias: -0.5, seasonBias: { spring: 0, summer: -0.8, autumn: 0.6, winter: 0.3 } as Record<Season, number> },
+  rainBeforeNoon: { noonHour: 12, spread: 3.0 },
+  high: { spread: 6.0, frontCooling: 5.0, thresholdJitterSd: 4.0 }, // °F
+  wind: { upperCoupling: 0.15, frontBoost: 6, spread: 4.0, thresholdJitterSd: 3.5 }, // mph
+  fog: { humidity: 4.5, humidityCenter: 0.66, wind: 0.15, windCenter: 9, pressureTrend: 0.3, bias: -0.1, seasonBias: { spring: 0, summer: -0.8, autumn: 0.6, winter: 0.3 } as Record<Season, number> },
 };
 
 export type SourceId =
@@ -69,7 +69,7 @@ export const SOURCES: Record<SourceId, { reads: HiddenVar; noiseSd: number; unlo
   farmersKnee: { reads: "humidity", noiseSd: 0.2, unlockedAtStart: true, label: "Farmer's knee" },
   cowsLyingDown: { reads: "none", noiseSd: 0.3, unlockedAtStart: true, label: "Cows lying down" },
   upstreamRadio: { reads: "frontArrivalHour", noiseSd: 1.0, unlockedAtStart: false, label: "Upstream radio" },
-  weatherBalloon: { reads: "upperWinds", noiseSd: 5, unlockedAtStart: false, label: "Weather balloon" },
+  weatherBalloon: { reads: "upperWinds", noiseSd: 3, unlockedAtStart: false, label: "Weather balloon" },
 };
 
 export const TIMELINE = { startHour: 6, endHour: 21, peakTempHour: 15, dawnLowOffset: 9 };
