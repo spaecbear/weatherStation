@@ -7,3 +7,5 @@ export * from "./questions";
 export * from "./scoring";
 export * from "./rating";
 export * from "./day";
+export * from "./playback";
+export * from "./debrief";

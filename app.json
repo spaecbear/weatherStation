@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Weather Station",
+    "slug": "weather-station",
+    "version": "0.2.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "platforms": ["ios", "android", "web"],
+    "web": { "bundler": "metro" }
+  }
+}

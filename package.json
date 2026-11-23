@@ -6,12 +6,28 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "sim": "tsx scripts/sim.ts"
+    "sim": "tsx scripts/sim.ts",
+    "start": "expo start",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "@types/react": "~19.3.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1"
-  }
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~58.0.17",
+    "expo": "^58.0.26",
+    "expo-status-bar": "~58.0.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-native": "^0.88.1",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-web": "^0.21.4"
+  },
+  "main": "index.ts"
 }

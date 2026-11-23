@@ -227,3 +227,22 @@ describe("rating, decay, retirement", () => {
     expect(applyCareerResult(20, s(-56)).rating).toBe(0);
   });
 });
+
+describe("forecastBounds (stake summary)", () => {
+  const steps = FORECAST_STEPS as readonly Step[];
+  it("matches scoreDay for the best and worst outcome sets, every combination", async () => {
+    const { forecastBounds } = await import("../src/engine");
+    const d = generateDay(77, "summer");
+    for (const a of steps) for (const b of steps) for (const c of steps) for (const mode of ["career", "daily"] as const) {
+      const calls = [a, b, c];
+      const f = Object.fromEntries(d.questions.map((q, i) => [q.id, calls[i]!]));
+      // Enumerate all 8 outcome sets; bounds must equal the max/min achieved.
+      const totals: number[] = [];
+      for (let m = 0; m < 8; m++) {
+        const o = Object.fromEntries(d.questions.map((q, i) => [q.id, Boolean(m & (1 << i))]));
+        totals.push(scoreDay(d.questions, f, o, mode).total);
+      }
+      expect(forecastBounds(calls, mode)).toEqual({ best: Math.max(...totals), worst: Math.min(...totals) });
+    }
+  });
+});

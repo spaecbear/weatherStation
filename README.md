@@ -58,3 +58,17 @@ Oracle > gambler holds: honest play wins. **Coward > gambler does not hold.** Th
 - Shrink the bonus (e.g. +5 base, +5 per bold call). This roughly halves the gambler's bonus income.
 - Pay the per-bold bonus only when that bold call was also the oracle step, i.e. the true odds were ≥ 80% (not observable to the player, so probably not).
 - Accept it: the gambler still loses to honest play, and coward > gambler may only be achievable with probabilities clustered near 50%, which conflicts with the 5–95% spread goal.
+
+## Phase 2: playable prototype
+
+```bash
+npm run web       # Expo in the browser (use phone-size devtools)
+npm start         # Expo dev server (scan with Expo Go / open a simulator)
+```
+
+The flow is: Station (signal cards, tap for an explanation) → Forecast (5-step selectors with live stakes and best/worst line) → Day playback → Verdict (rep per question, perfect-day celebration, debrief line).
+
+- The screens live in `src/app` and only render engine output. Pacing (`playbackSchedule`, `decidingHour`), stake numbers (`stakePreview`, `forecastBounds`) and the debrief (`debriefQuestion`) are engine functions with tests.
+- Playback runs 30–60 s. Hours near a question's deciding moment slow down, and the deciding hour lingers longer the closer the roll was to flipping (`PLAYBACK` in `config.ts`).
+- You can't go back once you submit; Android's hardware back button is blocked too. Skip appears only after you've watched that day once ("Watch again").
+- The app starts on the fixed dev seed `20261123`; "New random day (dev)" rolls a fresh one. The prototype scores in career mode, so the +2 trickle shows.

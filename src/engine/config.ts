@@ -76,3 +76,13 @@ export const TIMELINE = { startHour: 6, endHour: 21, peakTempHour: 15, dawnLowOf
 
 /** Probabilities are clamped so no question is ever certain. */
 export const PROB_CLAMP: [number, number] = [0.02, 0.98];
+
+/** Day playback pacing (Phase 2). Seconds of real time. */
+export const PLAYBACK = {
+  secondsPerHour: 1.6, // normal pace
+  slowSecondsPerHour: 4.0, // pace within `slowWindowHours` of a deciding hour
+  slowWindowHours: 1,
+  lingerSeconds: 4.0, // extra time on the deciding hour, scaled by closeness
+  minTotalSeconds: 30,
+  maxTotalSeconds: 60,
+};

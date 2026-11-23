@@ -56,3 +56,19 @@ export function scoreDay(
   const total = scored.reduce((a, q) => a + q.rep, 0) + perfectBonus + trickle;
   return { questions: scored, perfectBonus, trickle, total };
 }
+
+/**
+ * Best and worst possible day totals for a set of calls, used by the
+ * forecast screen's summary line. Best assumes every non-0.5 call lands
+ * on its side (earning the perfect-day bonus if no call is 0.5).
+ */
+export function forecastBounds(calls: readonly Step[], mode: Mode): { best: number; worst: number } {
+  calls.forEach(assertStep);
+  const trickle = trickleFor(mode);
+  const best =
+    calls.reduce((a, p) => a + Math.max(repForCall(p, true), repForCall(p, false)), 0) +
+    perfectDayBonus(calls.map((p) => ({ forecast: p, outcome: p > 0.5 }))) +
+    trickle;
+  const worst = calls.reduce((a, p) => a + Math.min(repForCall(p, true), repForCall(p, false)), 0) + trickle;
+  return { best, worst };
+}
