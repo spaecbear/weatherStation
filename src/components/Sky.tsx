@@ -24,6 +24,9 @@ export function lerpSnapshot(a: HourSnapshot, b: HourSnapshot, t: number): HourS
     hour: l(a.hour, b.hour),
     cloudCover: l(a.cloudCover, b.cloudCover),
     rain: t < 0.5 ? a.rain : b.rain,
+    snow: t < 0.5 ? a.snow : b.snow,
+    rainbow: t < 0.5 ? a.rainbow : b.rainbow,
+    aurora: t < 0.5 ? a.aurora : b.aurora,
     temperature: l(a.temperature, b.temperature),
     wind: l(a.wind, b.wind),
     fog: t < 0.5 ? a.fog : b.fog,
@@ -63,6 +66,7 @@ export function Sky({ snap, timeMs, reducedMotion = false }: { snap: HourSnapsho
   let top = mix(mix("#3b4a6b", "#4f86c0", dayness), "#353c46", dark);
   let bottom = mix(mix("#e39a6e", "#a9cfe9", dayness), "#68717e", dark);
   if (flash) { top = "#b9c4d2"; bottom = "#dde4ec"; }
+  const top0 = top, bottom0 = bottom;
   const BANDS = 11;
   const bandH = Math.ceil(HORIZON / BANDS);
   const shade = (c: string) => mix(c, "#15181c", dark * 0.4 + (1 - dayness) * 0.25);
@@ -88,13 +92,54 @@ export function Sky({ snap, timeMs, reducedMotion = false }: { snap: HourSnapsho
     return <Sprite key={i} rows={CLOUDS[i % 3]!} palette={cloudPal} px={px} x={x} y={y} flip={i % 2 === 1} />;
   });
 
-  // Rain
+  // Rain, or snow: slower, square flakes that drift
+  const snowing = Boolean(snap.snow);
   const drops = raining
     ? Array.from({ length: Math.min(55, Math.round(10 + snap.rain * 9)) }, (_, i) => {
-        const y = Math.floor((i * 13 + t * 0.07 * (1 + (i % 3) * 0.15)) % (HORIZON + 6)) - 3;
-        const x = Math.floor((i * 17 + y * Math.min(1, snap.wind / 20)) % cols);
-        return <Rect key={i} x={x} y={y} w={1} h={3} c="#a9c4e0" px={px} />;
+        const fall = snowing ? 0.018 : 0.07;
+        const y = Math.floor((i * 13 + t * fall * (1 + (i % 3) * 0.15)) % (HORIZON + 6)) - 3;
+        const drift = snowing ? Math.round(2 * Math.sin(t / 400 + i)) : 0;
+        const x = Math.floor((((i * 17 + y * Math.min(1, snap.wind / 20) + drift) % cols) + cols) % cols);
+        return snowing
+          ? <Rect key={i} x={x} y={y} w={1} h={1} c="#ffffff" px={px} />
+          : <Rect key={i} x={x} y={y} w={1} h={3} c="#a9c4e0" px={px} />;
       })
+    : null;
+
+  // Ground: snow cover when it snows, a frost rime when it's freezing
+  const frosty = snap.temperature <= 32;
+  const groundBase = snowing ? "#e8edf2" : frosty ? mix("#4d7f43", "#dfe8ee", 0.55) : "#4d7f43";
+  const groundTop = snowing ? "#ffffff" : frosty ? "#e9f0f4" : "#6ea35c";
+  const groundTuft = snowing ? "#c9d3dd" : frosty ? "#b9c9d2" : "#3e6a37";
+
+  // Double rainbow: solid pixel bands. For each column, each band fills the gap between
+  // its outer and inner radius, so the arc has no holes. The outer bow is fainter and reversed.
+  const BOW = ["#d65a4a", "#e8913b", "#f3cd55", "#6aa95a", "#6f98c2", "#8a6fc2"];
+  const rainbow = snap.rainbow
+    ? ([[19, BOW, 0.85], [27, [...BOW].reverse(), 0.45]] as const).flatMap(([R, bands, k], arc) => {
+        const cx = Math.round(cols * 0.5), cy = HORIZON;
+        const yAt = (r: number, x: number) => (Math.abs(x - cx) > r ? cy : cy - Math.sqrt(r * r - (x - cx) ** 2));
+        const out = [];
+        for (let b = 0; b < bands.length; b++) {
+          const rOut = R - b, rIn = R - b - 1;
+          for (let x = cx - rOut; x <= cx + rOut; x++) {
+            const top = Math.round(Math.min(yAt(rOut, x), yAt(rOut, x + 0.99)));
+            const bottom = Math.max(top + 1, Math.round(Math.min(yAt(rIn, x), yAt(rIn, x + 0.99))));
+            const h = Math.min(bottom, cy) - top;
+            if (h > 0) out.push(<Rect key={`rb${arc}-${b}-${x}`} x={x} y={top} w={1} h={h} c={mix(mix(top0, bottom0, top / HORIZON), bands[b]!, k)} px={px} />);
+          }
+        }
+        return out;
+      })
+    : null;
+
+  // Northern lights: wavy green/teal curtains across the top of the sky
+  const aurora = snap.aurora
+    ? ["#58e0a0", "#3bb7c9"].flatMap((c, band) => Array.from({ length: Math.ceil(cols / 3) }, (_, i) => {
+        const x = i * 3;
+        const y = Math.round(3 + band * 5 + 3 * Math.sin(x / 7 + t / 600 + band));
+        return <View key={`au${band}-${i}`} style={{ position: "absolute", left: x * px, top: y * px, width: 3 * px, height: (5 + (i % 3)) * px, backgroundColor: c, opacity: 0.5 }} />;
+      }))
     : null;
 
   // Town
@@ -126,16 +171,18 @@ export function Sky({ snap, timeMs, reducedMotion = false }: { snap: HourSnapsho
       accessibilityLabel="Weather over town"
     >
       {Array.from({ length: BANDS }, (_, i) => <Rect key={`b${i}`} x={0} y={i * bandH} w={cols} h={bandH} c={mix(top, bottom, i / (BANDS - 1))} px={px} />)}
+      {aurora}
       {sunVisible ? <Sprite rows={SUN} palette={{ y: "#f3cd55", Y: "#fff1a8" }} px={px} x={sunX} y={sunY} /> : null}
       <Ridge cols={cols} px={px} color={shade("#55657a")} top={33} amp={3} phase={0.4} />
       {clouds}
       {flash ? <Sprite rows={BOLT} palette={{ y: "#fff3b0" }} px={px} x={Math.round(cols * 0.6)} y={16} /> : null}
       <Ridge cols={cols} px={px} color={shade("#3f6a46")} top={39} amp={2} phase={2.1} />
       {/* ground */}
-      <Rect x={0} y={HORIZON} w={cols} h={ROWS - HORIZON} c={shade("#4d7f43")} px={px} />
-      <Rect x={0} y={HORIZON} w={cols} h={1} c={shade("#6ea35c")} px={px} />
+      {rainbow}
+      <Rect x={0} y={HORIZON} w={cols} h={ROWS - HORIZON} c={shade(groundBase)} px={px} />
+      <Rect x={0} y={HORIZON} w={cols} h={1} c={shade(groundTop)} px={px} />
       {Array.from({ length: Math.ceil(cols / 6) }, (_, i) => (
-        <Rect key={`g${i}`} x={i * 6 + (i % 3)} y={HORIZON + 3 + (i * 5) % 8} w={2} h={1} c={shade("#3e6a37")} px={px} />
+        <Rect key={`g${i}`} x={i * 6 + (i % 3)} y={HORIZON + 3 + (i * 5) % 8} w={2} h={1} c={shade(groundTuft)} px={px} />
       ))}
       <Sprite rows={HOUSE} palette={townPal} px={px} x={Math.round(cols * 0.1)} y={HORIZON - 8} />
       <Sprite rows={STATION} palette={townPal} px={px} x={stationX} y={HORIZON - 10} />

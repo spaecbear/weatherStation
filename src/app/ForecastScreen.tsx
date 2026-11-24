@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { forecastBounds, stakePreview, type Step } from "../engine";
+import { CLIENTS, forecastBounds, stakePreview, type Step } from "../engine";
 import { Button, Card, Screen } from "../components/ui";
 import { StepSelector } from "../components/StepSelector";
 import type { RoundModel } from "./useRound";
@@ -33,6 +33,11 @@ export function ForecastScreen({ m }: { m: RoundModel }) {
         const stake = v !== undefined ? stakePreview(v) : null;
         return (
           <Card key={q.id} style={{ gap: 10 }}>
+            {q.client ? (
+              <Text testID={`contract-${q.id}`} style={[type.label, { color: colors.gold }]}>CONTRACT · {CLIENTS[q.client].name.toUpperCase()} · FEE ${q.fee}</Text>
+            ) : q.longShot ? (
+              <Text style={[type.label, { color: colors.accentHi }]}>{m.day.special ? "THE BIG QUESTION" : "LONG SHOT · A RARE ONE"}</Text>
+            ) : null}
             <Text style={type.h2}>{i + 1}. {q.text}</Text>
             <StepSelector testID={`sel-${q.id}`} value={v} onChange={(step) => m.setCalls({ ...m.calls, [q.id]: step })} />
             <Text style={[type.body, { color: colors.muted }]} testID={`stake-${q.id}`}>

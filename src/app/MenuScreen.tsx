@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { currentRating, currentStreak, dailyNumber, hasPlayedDaily, type CareerState, type DailyState } from "../engine";
+import { currentRating, currentStreak, dailyNumber, hasPlayedDaily, seasonForDate, type CareerState, type DailyState, type HourSnapshot, type Season } from "../engine";
 import { Button, Panel, Screen } from "../components/ui";
 import { Icon } from "../components/Sprite";
 import { ICON_PALETTE, MENU_ICONS } from "../components/pixelArt";
@@ -14,7 +14,13 @@ interface Props {
   devNextDay: () => void;
 }
 
-const TITLE_SNAP = { hour: 17, cloudCover: 0.85, rain: 3.5, temperature: 58, wind: 18, fog: false };
+/** The title scene follows the real season (and shows off the weather art). */
+const TITLE_SNAPS: Record<Season, HourSnapshot> = {
+  spring: { hour: 17, cloudCover: 0.5, rain: 0, temperature: 61, wind: 9, fog: false, rainbow: true },
+  summer: { hour: 13, cloudCover: 0.2, rain: 0, temperature: 84, wind: 6, fog: false },
+  autumn: { hour: 17, cloudCover: 0.85, rain: 3.5, temperature: 58, wind: 18, fog: false },
+  winter: { hour: 21, cloudCover: 0.6, rain: 1.5, temperature: 28, wind: 8, fog: false, snow: true, aurora: true },
+};
 
 export function MenuScreen({ today, daily, career, go, devNextDay }: Props) {
   const played = hasPlayedDaily(daily, today);
@@ -26,7 +32,7 @@ export function MenuScreen({ today, daily, career, go, devNextDay }: Props) {
         <View style={{ width: 150 }}><Button kind="ghost" label="Dev +1 day" onPress={devNextDay} testID="dev-next-day" /></View>
       </View>
     }>
-      <Sky snap={TITLE_SNAP} timeMs={0} />
+      <Sky snap={TITLE_SNAPS[seasonForDate(today)]} timeMs={0} />
       <Tile testID="menu-daily" icon="daily" title={`Daily #${dailyNumber(today)}`} onPress={() => go("daily")}
         detail={`${played ? "Played today ✓" : "Same sky for everyone. One try."}${streak ? ` Streak ${streak}.` : ""}`} />
       <Tile testID="menu-career" icon="career" title="Career" onPress={() => go("career")}

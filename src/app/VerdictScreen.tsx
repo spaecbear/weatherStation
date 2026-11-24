@@ -10,7 +10,7 @@ import { Button } from "../components/ui";
 
 const repColor = (n: number) => (n > 0 ? colors.good : n < 0 ? colors.bad : colors.muted);
 
-export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: ReactNode; actions: ReactNode }) {
+export function VerdictScreen({ m, extra, actions, rival }: { m: RoundModel; extra?: ReactNode; actions: ReactNode; rival?: { name: string; calls: Record<string, number>; rep: number; yourRep: number } }) {
   const score = m.result!.score;
   const pop = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -46,6 +46,7 @@ export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: Re
               <Text style={[type.big, { color: repColor(qs.rep) }]}>{signed(qs.rep)}</Text>
             </View>
             <Text style={[type.body, { color: colors.accentHi }]}>{d.line}</Text>
+            {rival ? <Text style={[type.label, { color: colors.muted }]}>CHET SAID {Math.round(rival.calls[q.id]! * 100)}%</Text> : null}
           </Card>
         );
       })}
@@ -58,6 +59,14 @@ export function VerdictScreen({ m, extra, actions }: { m: RoundModel; extra?: Re
           <Text style={[type.big, { color: repColor(score.total) }]} testID="total">{signed(score.total)} REP</Text>
         </View>
       </Card>
+      {rival ? (
+        <Card tone="sunk" style={{ gap: 4 }}>
+          <Text style={type.label}>{rival.name.toUpperCase()}</Text>
+          <Text testID="rival-line" style={type.body}>
+            Chet {signed(rival.rep)} vs you {signed(rival.yourRep)}. {rival.yourRep > rival.rep ? "Doris chalks one up for you." : rival.yourRep < rival.rep ? "Chet takes the day." : "Dead even."}
+          </Text>
+        </Card>
+      ) : null}
       {extra}
     </Screen>
   );

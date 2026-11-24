@@ -10,6 +10,9 @@ export interface RoundProps extends RoundOptions {
   subtitle: string;
   onLeave: () => void; // back out before submitting
   verdictExtra?: ReactNode;
+  verdictRival?: { name: string; calls: Record<string, number>; rep: number; yourRep: number };
+  /** Shown at the top of the station screen (signature-day scene). */
+  stationIntro?: ReactNode;
   verdictActions: ReactNode;
 }
 
@@ -28,12 +31,12 @@ export function Round(p: RoundProps) {
 
   switch (m.phase) {
     case "station":
-      return <StationScreen m={m} subtitle={p.subtitle} onLeave={p.onLeave} />;
+      return <StationScreen m={m} subtitle={p.subtitle} onLeave={p.onLeave} intro={p.stationIntro} />;
     case "forecast":
       return <ForecastScreen m={m} />;
     case "playback":
       return <PlaybackScreen m={m} />;
     case "verdict":
-      return <VerdictScreen m={m} extra={p.verdictExtra} actions={p.verdictActions} />;
+      return <VerdictScreen m={m} extra={p.verdictExtra} actions={p.verdictActions} rival={p.verdictRival} />;
   }
 }

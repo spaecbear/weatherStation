@@ -2,7 +2,7 @@
 
 A cozy, turn-based forecasting game. See `Weather Station Design Doc.pdf` and `weather-station-build-plan.md`.
 
-**Status: Phases 1–4 complete, plus an early 16-bit art pass.** The engine is pure TypeScript in `src/engine`; the Expo app is in `src/app`.
+**Status: Phases 1–5 complete, plus an early 16-bit art pass.** The engine is pure TypeScript in `src/engine`; the Expo app is in `src/app`.
 
 ```bash
 npm install
@@ -156,3 +156,37 @@ frogsCroaking   49.9%  Nonsense
 ```
 
 Each upgrade lifts the question types it should. Radar and radio overlap: radar's extra precision barely helps, because rain timing is already fuzzy at the hour scale. Phase 5's storm events could give radar a distinct job. No instrument reads the temperature baseline, so "high above" questions are stuck near guesswork.
+
+## Phase 5: town and story
+
+Code: `engine/town.ts` (rules), `engine/story.ts` (all story text), and the tunables in `config.ts` (`TOWN`, `CLIENTS`, `SPECIALS`, `RIVAL`).
+
+- **Calendar:** a year is 112 career days: four 28-day seasons, starting in spring. Each season has its own weather ranges and question pool.
+  - **Question types:** frost at dawn, snow, and "dry and clear all day" are new. Long shots are double rainbow, northern lights, and the hundred-year storm.
+  - **Honest compound odds:** every compound event is built from the same independent rolls (e.g. snow = rain AND a high below 36°F), so its stated probability is exact. A test checks calibration for all 11 types.
+- **Clients:**
+  - **Who they are:** Farmer Bell, the fishing fleet, Marigold Weddings, the County Fair, Ridgetop Ski Lodge, and Doris at the diner.
+  - **Contracts:** on about 40% of ordinary days, a client in season replaces one question with a contract.
+  - **Contract pay:** `fee × (0.5 + 0.25 × trust) × (1 + rep/56)`. This is a straight-line function of the Brier score, so honest calls still maximise expected pay, and it never goes negative.
+  - **Trust:** 0–5. It moves with the rep earned on the client's question; the fleet and the wedding planner lose more on a miss. Trust 2 and 4 unlock dialogue scenes. Apprentices start at 0.5 trust ("the town is warier").
+- **Signature days:**
+
+  | Season | Signature day(s) |
+  |---|---|
+  | Spring | Monsoon Onset |
+  | Summer | Summer Festival; County Fair (3 fair contracts) |
+  | Autumn | First Frost Watch |
+  | Winter | First Snow Watch; the Hundred-Year Storm (year 1 climax) |
+
+  Each nudges the hidden weather toward the event, but it's still uncertain. Each comes with a scene before the day and a Gazette front page after.
+- **Long shots:** on about 5% of ordinary days, a long shot replaces a question. If it happens and you gave it ≥30%, the Gazette celebrates.
+- **Long-range calls:** in the first week of each season you can answer "Will it rain on more than K of this season's 28 days?". K sits at the median. The probability is exact: it treats days already played as known and the rest by their true odds. It's scored like any call on the last day of the season.
+- **Rival:** Chet Storm, Channel 6. He reads the starting instruments with the same estimator as the sim bot, then pushes his numbers bold for TV (logit × 1.5) and adds a small seeded hunch. Over 30 simulated years he trails a fully equipped signal reader by about 3 rep/day. Doris's chalkboard tracks you vs Chet each season, and every season ends with a chalkboard headline.
+- **Story:** the Great Picnic Disaster. It's told through 10 client scenes, 8 pages of Wendell's notebook (unlocked by station days and rating, kept through succession), and the Hundred-Year Storm finale.
+- **A test plays a full in-game year** (`tests/town.test.ts`). It checks that:
+  - every client posts work and every signature day happens in its season
+  - four season calls resolve
+  - the chalkboard covers all four seasons
+  - each season has at least one story beat
+  - the finale lands
+- **Weather art:** snow and snow cover, frost rime, a pixel double rainbow and the northern lights are drawn in the playback scene. The menu's title scene follows the real season.

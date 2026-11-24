@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { Text } from "react-native";
 import { Button, Screen } from "../components/ui";
 import { SignalCard } from "../components/SignalCard";
 import type { RoundModel } from "./useRound";
 import { colors, type } from "./theme";
 
-export function StationScreen({ m, subtitle, onLeave }: { m: RoundModel; subtitle: string; onLeave: () => void }) {
+export function StationScreen({ m, subtitle, onLeave, intro }: { m: RoundModel; subtitle: string; onLeave: () => void; intro?: ReactNode }) {
   return (
     <Screen
       title="The Station"
@@ -16,6 +17,7 @@ export function StationScreen({ m, subtitle, onLeave }: { m: RoundModel; subtitl
         </>
       }
     >
+      {intro}
       <Text style={[type.body, { color: colors.muted }]}>Tap a reading to see what it tells you.</Text>
       {m.signals.map((sig) => <SignalCard key={sig.source} signal={sig} tier={m.tiers?.[sig.source]} />)}
     </Screen>

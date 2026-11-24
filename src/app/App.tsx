@@ -7,6 +7,7 @@ import { PressStart2P_400Regular } from "@expo-google-fonts/press-start-2p";
 import { VT323_400Regular } from "@expo-google-fonts/vt323";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
+  CLIENTS, makeSeasonCall, RIVAL,
   BASE_LOADOUT, buy, careerLoadout, currentStreak, dailyCalibration, FOLK_SIGNS, journalTier, mergeCalibration, repair, dailyNumber, dailyResult, generateDailyDay, generateDay, isCareerRetired, mulberry32,
   newCareer, nextCareerDay, pick, playCareerDay, playDay, SEASONS, shareCard, submitDaily, succeed, emptyCalibration,
   type CareerDayOutcome, type CareerState, type DailyState, type Day,
@@ -17,6 +18,7 @@ import { MenuScreen } from "./MenuScreen";
 import { Round } from "./Round";
 import { CareerSetupScreen, FarewellScreen, HistoryWallScreen, OfficeScreen } from "./CareerScreens";
 import { CalibrationScreen, ShopScreen, JournalScreen, Wallet } from "./ProgressScreens";
+import { NotebookScreen, SceneCard, StoryScreen, TownScreen, type StoryItem } from "./TownScreens";
 import { shiftClock, todayUtc } from "./clock";
 import { colors } from "./theme";
 import { money, signed } from "./signalText";
@@ -32,7 +34,10 @@ type Route =
   | { name: "wall"; back: "menu" | "office" }
   | { name: "shop" }
   | { name: "journal" }
-  | { name: "calibration"; back: "menu" | "office" };
+  | { name: "calibration"; back: "menu" | "office" }
+  | { name: "town" }
+  | { name: "notebook" }
+  | { name: "story"; items: StoryItem[]; then: Route };
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 32);
 const zenDay = (seed: number) => generateDay(seed, pick(mulberry32(seed ^ 0x5eaa), SEASONS));
@@ -145,8 +150,10 @@ export default function App() {
           career={career!} today={today}
           onForecast={() => { setLastCareerDay(null); setRoute({ name: "careerRound", day: nextCareerDay(career!) }); }}
           onNav={(to) => setRoute(
-            to === "wall" ? { name: "wall", back: "office" } : to === "calibration" ? { name: "calibration", back: "office" } : to === "shop" ? { name: "shop" } : { name: "journal" },
+            to === "wall" ? { name: "wall", back: "office" } : to === "calibration" ? { name: "calibration", back: "office" }
+              : to === "shop" ? { name: "shop" } : to === "town" ? { name: "town" } : to === "notebook" ? { name: "notebook" } : { name: "journal" },
           )}
+          onSeasonCall={(step) => updateCareer(makeSeasonCall(career!, step))}
           onMenu={toMenu}
         />
       );
@@ -159,6 +166,7 @@ export default function App() {
           key={`career-${route.day.seed}`}
           day={route.day} mode="career" loadout={careerLoadout(career!)}
           tiers={Object.fromEntries(FOLK_SIGNS.map((f) => [f, journalTier(career!.journal[f])]))}
+          stationIntro={route.day.special ? <SceneCard id={route.day.special} /> : null}
           subtitle={`${career!.forecaster.name} · day ${career!.forecaster.dayCount + (out ? 0 : 1)}`}
           onLeave={() => setRoute({ name: "office" })}
           commit={(calls) => {
@@ -174,13 +182,27 @@ export default function App() {
                 <Body>Pay today: {money(out.pay)}</Body>
                 <Wallet amount={out.career.money} />
               </View>
+              {out.contracts.map((x) => (
+                <Body key={x.questionId}>
+                  {CLIENTS[x.client].name}: {money(x.pay)} · trust {x.trustAfter > x.trustBefore + 0.01 ? "up" : x.trustAfter < x.trustBefore - 0.01 ? "down" : "steady"}
+                </Body>
+              ))}
               {out.radarBroke ? <Body>A lightning strike knocked out the radar. Repair it at the shop.</Body> : null}
               {out.retired ? <Body>The council has called a meeting...</Body> : null}
             </Card>
           ) : null}
-          verdictActions={out?.retired
-            ? <Button testID="to-farewell" label="Go to the council meeting" onPress={() => setRoute({ name: "farewell" })} />
-            : <Button testID="to-office" label="Back to the office" onPress={() => setRoute({ name: "office" })} />}
+          verdictRival={out ? { name: RIVAL.name, calls: out.rival.calls, rep: out.rival.rep, yourRep: out.yourRep } : undefined}
+          verdictActions={(() => {
+            if (!out) return null;
+            const items: StoryItem[] = [
+              ...out.story.scenes.map((id) => ({ kind: "scene" as const, id })),
+              ...out.story.pages.map((index) => ({ kind: "page" as const, index })),
+              ...out.story.headlines.map((h) => ({ kind: "headline" as const, h })),
+            ];
+            const then: Route = out.retired ? { name: "farewell" } : { name: "office" };
+            const label = items.length ? (out.story.headlines.length ? "Read the Gazette" : "Meanwhile, in town...") : out.retired ? "Go to the council meeting" : "Back to the office";
+            return <Button testID={items.length ? "to-story" : out.retired ? "to-farewell" : "to-office"} label={label} onPress={() => setRoute(items.length ? { name: "story", items, then } : then)} />;
+          })()}
         />
       );
       break;
@@ -209,6 +231,18 @@ export default function App() {
           onBuy={(id) => updateCareer(buy(career!, id))}
           onRepair={(id) => updateCareer(repair(career!, id))} />
       );
+      break;
+
+    case "town":
+      screen = <TownScreen career={career!} onBack={() => setRoute({ name: "office" })} />;
+      break;
+
+    case "notebook":
+      screen = <NotebookScreen career={career!} onBack={() => setRoute({ name: "office" })} />;
+      break;
+
+    case "story":
+      screen = <StoryScreen key={route.items.length + JSON.stringify(route.items[0])} items={route.items} onDone={() => setRoute(route.then)} />;
       break;
 
     case "journal":

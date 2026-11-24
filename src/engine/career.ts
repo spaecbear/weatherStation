@@ -268,7 +268,7 @@ export function playCareerDay(c: CareerState, calls: Record<string, Step>, today
     headlines.push(specialHeadline(sid, outcomes[key.id]!, right, f.name));
   }
   for (const q of day.questions) {
-    if (!q.longShot || !outcomes[q.id]) continue;
+    if (!q.longShot || !outcomes[q.id] || day.special) continue; // signature days get their own front page
     const called = calls[q.id]! >= TOWN.longShotBrag;
     headlines.push({
       kicker: called ? "CALLED IT!" : "LONG SHOT",

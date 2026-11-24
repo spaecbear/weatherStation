@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Switch, Text, View } from "react-native";
-import { careerSeason, currentRating, RATING, suggestName, townTalk, wallEntryFor, type CareerState, type WallEntry } from "../engine";
+import { calendar, CAREER, careerSeason, currentRating, specialFor, type Step, RATING, suggestName, townTalk, wallEntryFor, type CareerState, type WallEntry } from "../engine";
 import { Body, Button, Card, Field, H2, Screen } from "../components/ui";
 import { colors, type } from "./theme";
 import { Wallet } from "./ProgressScreens";
+import { Chalkboard, SeasonCallCard } from "./TownScreens";
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 
@@ -35,10 +36,12 @@ function RatingBar({ rating }: { rating: number }) {
   );
 }
 
-export type OfficeNav = "shop" | "journal" | "calibration" | "wall";
+export type OfficeNav = "shop" | "journal" | "calibration" | "wall" | "town" | "notebook";
 
-export function OfficeScreen({ career, today, onForecast, onNav, onMenu }: { career: CareerState; today: string; onForecast: () => void; onNav: (to: OfficeNav) => void; onMenu: () => void }) {
+export function OfficeScreen({ career, today, onForecast, onNav, onMenu, onSeasonCall }: { career: CareerState; today: string; onForecast: () => void; onNav: (to: OfficeNav) => void; onMenu: () => void; onSeasonCall: (s: Step) => void }) {
   const f = career.forecaster;
+  const cal = calendar(f.dayCount);
+  const special = specialFor(cal);
   const rating = currentRating(career, today);
   const talk = townTalk(career, today);
   return (
@@ -47,12 +50,18 @@ export function OfficeScreen({ career, today, onForecast, onNav, onMenu }: { car
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ flex: 1 }}><Button testID="nav-shop" kind="ghost" label="Shop" onPress={() => onNav("shop")} /></View>
           <View style={{ flex: 1 }}><Button testID="nav-journal" kind="ghost" label="Journal" onPress={() => onNav("journal")} /></View>
+          <View style={{ flex: 1 }}><Button testID="nav-town" kind="ghost" label="Town" onPress={() => onNav("town")} /></View>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <View style={{ flex: 1 }}><Button testID="nav-calibration" kind="ghost" label="Chart" onPress={() => onNav("calibration")} /></View>
+          <View style={{ flex: 1 }}><Button testID="nav-notebook" kind="ghost" label="Notes" onPress={() => onNav("notebook")} /></View>
           <View style={{ flex: 1 }}><Button kind="ghost" label="Wall" onPress={() => onNav("wall")} /></View>
           <View style={{ flex: 1 }}><Button kind="ghost" label="Menu" onPress={onMenu} /></View>
         </View></>}>
+      <Card tone="sunk" style={{ gap: 4 }}>
+        <Text testID="calendar" style={type.h2}>YEAR {cal.year} · {cal.season.toUpperCase()} · DAY {cal.dayInSeason + 1}/{CAREER.daysPerSeason}</Text>
+        {special ? <Text style={[type.label, { color: colors.gold }]}>TODAY: {special.title.toUpperCase()}</Text> : null}
+      </Card>
       {talk ? (
         <Card tone="gold" style={{ gap: 6 }}>
           <Text style={[type.label, { color: "#3a2e08" }]}>AROUND TOWN</Text>
@@ -67,6 +76,8 @@ export function OfficeScreen({ career, today, onForecast, onNav, onMenu }: { car
         <RatingBar rating={rating} />
         <Body muted>The council retires a forecaster at {RATING.retirementAt}. Only bad calls can get you there.</Body>
       </Card>
+      <SeasonCallCard career={career} onCall={onSeasonCall} />
+      <Chalkboard career={career} />
       <Card style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <H2>SAVINGS</H2>
         <Wallet amount={career.money} />

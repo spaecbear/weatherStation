@@ -69,7 +69,7 @@ const SPECIAL_QUESTIONS: Record<SpecialId, { type: QuestionType; client?: Client
   countyFair: [{ type: "rainBeforeNoon", client: "fair" }, { type: "highAbove", client: "fair" }, { type: "windAbove", client: "fair" }],
   firstFrost: [{ type: "frostAtDawn", client: "farmer" }, { type: "fogAtDawn" }, { type: "highAbove" }],
   firstSnow: [{ type: "snowToday", client: "ski" }, { type: "frostAtDawn" }, { type: "windAbove" }],
-  hundredYearStorm: [{ type: "hundredYearStorm" }, { type: "windAbove", client: "fleet", windOffset: 14 }, { type: "rainBeforeNoon" }],
+  hundredYearStorm: [{ type: "hundredYearStorm" }, { type: "windAbove", client: "fleet", windOffset: 4 }, { type: "rainBeforeNoon" }],
 };
 
 /** The question that headlines a signature day (decides its newspaper story). */
