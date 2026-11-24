@@ -226,8 +226,21 @@ export const CHART = [
   "kkkkkkkkkk",
 ];
 
+export const GEAR = [
+  "...kk...",
+  ".k.gg.k.",
+  "..kggk..",
+  "kggkkggk",
+  "kggkkggk",
+  "..kggk..",
+  ".k.gg.k.",
+  "...kk...",
+];
+
 export const MENU_ICONS = {
   calibration: CHART,
+  guide: BOOK,
+  settings: GEAR,
   daily: [
     ".k....k.",
     "kkkkkkkk",

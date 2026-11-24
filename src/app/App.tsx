@@ -12,7 +12,7 @@ import {
   newCareer, nextCareerDay, pick, playCareerDay, playDay, SEASONS, shareCard, submitDaily, succeed, emptyCalibration,
   type CareerDayOutcome, type CareerState, type DailyState, type Day,
 } from "../engine";
-import { saves } from "../storage";
+import { defaultSettings, saves, type Settings } from "../storage";
 import { Body, Button, Card, H2, Panel } from "../components/ui";
 import { MenuScreen } from "./MenuScreen";
 import { Round } from "./Round";
@@ -20,7 +20,10 @@ import { CareerSetupScreen, FarewellScreen, HistoryWallScreen, OfficeScreen } fr
 import { CalibrationScreen, ShopScreen, JournalScreen, Wallet } from "./ProgressScreens";
 import { NotebookScreen, SceneCard, StoryScreen, TownScreen, type StoryItem } from "./TownScreens";
 import { shiftClock, today as todayLocal } from "./clock";
-import { colors } from "./theme";
+import { applyTheme, colors } from "./theme";
+import { sound } from "./sound";
+import { SettingsScreen } from "./SettingsScreen";
+import { COACH, tutorialDay } from "./Onboarding";
 import { money, signed } from "./signalText";
 
 type Route =
@@ -37,7 +40,9 @@ type Route =
   | { name: "calibration"; back: "menu" | "office" }
   | { name: "town" }
   | { name: "notebook" }
-  | { name: "story"; items: StoryItem[]; then: Route };
+  | { name: "story"; items: StoryItem[]; then: Route }
+  | { name: "tutorial"; run: number }
+  | { name: "settings" };
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 32);
 const zenDay = (seed: number) => generateDay(seed, pick(mulberry32(seed ^ 0x5eaa), SEASONS));
@@ -51,14 +56,34 @@ export default function App() {
   const [lastCareerDay, setLastCareerDay] = useState<CareerDayOutcome | null>(null);
   const [copied, setCopied] = useState(false);
   const [fontsLoaded] = useFonts({ PressStart2P_400Regular, VT323_400Regular });
+  const [settings, setSettings] = useState<Settings>(defaultSettings());
+  const [themeVersion, setThemeVersion] = useState(0);
 
   useEffect(() => {
-    Promise.all([saves.loadDaily(), saves.loadCareer()]).then(([d, c]) => {
+    Promise.all([saves.loadDaily(), saves.loadCareer(), saves.loadSettings()]).then(([d, c, st]) => {
       setDaily(d);
       setCareer(c);
+      setSettings(st);
+      applyTheme(st);
+      sound.configure(st);
+      // A brand-new player starts with the guided practice day.
+      if (!st.onboarded && !c) setRoute({ name: "tutorial", run: 0 });
       setLoaded(true);
     });
   }, []);
+
+  const updateSettings = useCallback((st: Settings) => {
+    setSettings(st);
+    applyTheme(st);
+    sound.configure(st);
+    setThemeVersion((v) => v + 1); // remount so every screen picks up new text sizes / colours
+    void saves.saveSettings(st);
+  }, []);
+
+  const finishTutorial = useCallback((then: Route) => {
+    updateSettings({ ...settings, onboarded: true });
+    setRoute(then);
+  }, [settings, updateSettings]);
 
   const toMenu = useCallback(() => {
     setToday(todayLocal());
@@ -88,6 +113,8 @@ export default function App() {
             if (to === "zen") setRoute({ name: "zen", seed: randomSeed() });
             if (to === "wall") setRoute({ name: "wall", back: "menu" });
             if (to === "calibration") setRoute({ name: "calibration", back: "menu" });
+            if (to === "guide") setRoute({ name: "tutorial", run: Date.now() });
+            if (to === "settings") setRoute({ name: "settings" });
             if (to === "career") setRoute(!career ? { name: "careerSetup" } : isCareerRetired(career, today) ? { name: "farewell" } : { name: "office" });
           }}
         />
@@ -233,6 +260,27 @@ export default function App() {
       );
       break;
 
+    case "tutorial":
+      screen = (
+        <Round
+          key={`tutorial-${route.run}`}
+          day={tutorialDay()} mode="zen" loadout={BASE_LOADOUT}
+          subtitle="Practice day"
+          coach={COACH}
+          onLeave={() => finishTutorial({ name: "menu" })}
+          commit={(calls) => playDay(tutorialDay(), calls, "zen")}
+          verdictActions={<>
+            <Button testID="tutorial-career" label={career ? "Back to the station" : "Start your career"} onPress={() => finishTutorial(career ? { name: "menu" } : { name: "careerSetup" })} />
+            <Button kind="ghost" label="Menu" onPress={() => finishTutorial({ name: "menu" })} />
+          </>}
+        />
+      );
+      break;
+
+    case "settings":
+      screen = <SettingsScreen settings={settings} onChange={updateSettings} onTutorial={() => setRoute({ name: "tutorial", run: Date.now() })} onBack={toMenu} />;
+      break;
+
     case "town":
       screen = <TownScreen career={career!} onBack={() => setRoute({ name: "office" })} />;
       break;
@@ -260,9 +308,11 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider key={themeVersion}>
       <StatusBar style="light" />
-      {screen}
+      <View style={{ flex: 1 }} onStartShouldSetResponderCapture={() => { sound.music(); return false; } /* browsers only allow audio after a tap */}>
+        {screen}
+      </View>
     </SafeAreaProvider>
   );
 }

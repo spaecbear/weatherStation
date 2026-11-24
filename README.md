@@ -2,7 +2,7 @@
 
 A cozy, turn-based forecasting game. See `Weather Station Design Doc.pdf` and `weather-station-build-plan.md`.
 
-**Status: Phases 1–5 complete, plus an early 16-bit art pass.** The engine is pure TypeScript in `src/engine`; the Expo app is in `src/app`.
+**Status: Phases 1–6 complete.** The engine is pure TypeScript in `src/engine`; the Expo app is in `src/app`.
 
 ```bash
 npm install
@@ -76,7 +76,7 @@ The flow is: Station (signal cards, tap for an explanation) → Forecast (5-step
 ## Phase 3: modes and saving
 
 - **Menu:** Daily, Career, Zen, History Wall.
-- **Daily** (`engine/daily.ts`): the seed and the reset both use the **UTC date** (#1 = 2026-01-01). There's one attempt per day: the calls are saved the moment you lock in, before playback, and the result is recomputed from the seed whenever it's needed. A streak survives until you miss a whole UTC day. The share card shows the weather emoji grid, x/3, "Perfect Forecast" and the number of bold calls, never the calls themselves.
+- **Daily** (`engine/daily.ts`): the seed and the reset both use the player's **local calendar date** (#1 = 2026-01-01), so the day turns over at local midnight. There's one attempt per day: the calls are saved the moment you lock in, before playback, and the result is recomputed from the seed whenever it's needed. A streak survives until you miss a whole UTC day. The share card is spoiler-free: one square per call (🟩 right side, 🟥 wrong side, ⬜ a 50% pass), x/3, "Perfect Forecast" and the number of bold calls. It never shows the weather or the calls.
 - **Career** (`engine/career.ts`): the save holds the forecaster, rating anchor, last played date, day history and history wall.
   - Decay is computed on open from `ratingAtLastPlay` + `lastPlayedDate`, so reopening the app never double-charges.
   - Decay appears as town talk, not numbers.
@@ -85,7 +85,7 @@ The flow is: Station (signal cards, tap for an explanation) → Forecast (5-step
   - Career days are deterministic: `subSeed(seedBase, "career:<generation>:<day>")`. Seasons change every 28 career days.
 - **Zen:** endless random days with nothing saved.
 - **Storage** (`src/storage`): AsyncStorage holds two versioned JSON blobs, `ws.career.v1` and `ws.daily.v1`. A corrupt or old save loads as empty instead of crashing. I chose AsyncStorage over SQLite because the data is small, always read whole, and written once per day, so a relational store adds nothing.
-- **Mocked clock:** the engine takes `today` as an argument everywhere, and the tests use fixed dates. In the app, `?today=YYYY-MM-DD` (web) or the menu's "Dev +1 day" button shifts "today".
+- **Mocked clock:** the engine takes `today` as an argument everywhere, and the tests use fixed dates. In the app, `?today=YYYY-MM-DD` (web) or the menu's "Dev +1 day" button (dev builds only) shifts "today".
 
 ## Art: 16-bit, slate storm theme
 
@@ -190,3 +190,30 @@ Code: `engine/town.ts` (rules), `engine/story.ts` (all story text), and the tuna
   - each season has at least one story beat
   - the finale lands
 - **Weather art:** snow and snow cover, frost rime, a pixel double rainbow and the northern lights are drawn in the playback scene. The menu's title scene follows the real season.
+
+## Phase 6: art, sound, polish
+
+- **Thermometer upgrade** ($300): a max-min thermometer that reads the day's warmth (`tempBaseline`).
+  - It's the strongest single instrument: "will the high top" calls rise from about 1.0 to 5.6 rep each, and frost and snow calls improve too.
+  - Priced to be a mid-game buy, not the obvious first one.
+- **Sound** (`scripts/gen-sounds.ts`, `npm run sounds` → `src/assets/sounds/*.wav`, about 1.3 MB):
+  - Every sound is generated in code; there are no third-party assets.
+  - What it makes: a calm chiptune theme, looping wind and rain-on-the-roof, distant thunder, a building cue for slowdowns, reveal stings (right side / wrong side / pass), a perfect-day fanfare, and a UI click.
+  - `src/app/sound.ts` plays them with `expo-audio`. Wind and rain follow the playback weather. Thunder lands half a second after each lightning flash. The theme pauses while the weather plays.
+  - Browsers only allow audio after a tap, so music starts on the first touch.
+- **The reveal beat:** time now freezes for 1.2 s on each deciding moment (`PLAYBACK.revealHoldSeconds`). That's when the answer flips, the sting plays and the phone buzzes. Holds are never squeezed by the 30–60 s pacing, and a test checks every reveal gets its beat.
+- **Haptics** (`expo-haptics`; does nothing on web): a light tap on each reveal, a heavy one on a miss, and a success buzz on a perfect day.
+- **Onboarding:**
+  - A new install opens straight into a guided practice day narrated by Wendell's notebook. It covers reading the station, what 10/30/50/70/90 mean and what's at stake, the slowdown, and the verdict.
+  - It ends with "Start your career". The first seven office visits each show one more note: standing, money and the shop, folk signs, clients, long-range calls, Chet, and calibration.
+  - The guide can be replayed from the menu or Settings.
+- **Accessibility** (Settings, saved separately from game saves):
+  - Text size: Normal, Large or Largest.
+  - Reduced motion: no particles, flashes or bouncing banners; the day still plays.
+  - Colour-blind palette: Okabe-Ito blue/orange for good/bad.
+  - Sound, music and haptics toggles.
+  - Every question has a distinct pixel icon, and good/bad numbers always carry a +/- sign, so nothing depends on colour alone.
+- **Art:**
+  - A pixel office scene; equipment you buy appears on its wall and desk.
+  - Chet's Channel 6 broadcast on a pixel CRT on the career verdict.
+  - Question icons throughout.

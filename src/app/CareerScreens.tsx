@@ -5,6 +5,8 @@ import { Body, Button, Card, Field, H2, Screen } from "../components/ui";
 import { colors, type } from "./theme";
 import { Wallet } from "./ProgressScreens";
 import { Chalkboard, SeasonCallCard } from "./TownScreens";
+import { OfficeScene } from "../components/Scenes";
+import { FIRST_WEEK_TIPS, NoteCard } from "./Onboarding";
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 
@@ -58,6 +60,10 @@ export function OfficeScreen({ career, today, onForecast, onNav, onMenu, onSeaso
           <View style={{ flex: 1 }}><Button kind="ghost" label="Wall" onPress={() => onNav("wall")} /></View>
           <View style={{ flex: 1 }}><Button kind="ghost" label="Menu" onPress={onMenu} /></View>
         </View></>}>
+      <OfficeScene season={cal.season} equipment={career.equipment.filter((e) => !career.brokenEquipment.includes(e))} />
+      {f.dayCount < FIRST_WEEK_TIPS.length ? (
+        <NoteCard title={`Wendell's note · ${FIRST_WEEK_TIPS[f.dayCount]!.title}`} testID="office-tip">{FIRST_WEEK_TIPS[f.dayCount]!.text}</NoteCard>
+      ) : null}
       <Card tone="sunk" style={{ gap: 4 }}>
         <Text testID="calendar" style={type.h2}>YEAR {cal.year} · {cal.season.toUpperCase()} · DAY {cal.dayInSeason + 1}/{CAREER.daysPerSeason}</Text>
         {special ? <Text style={[type.label, { color: colors.gold }]}>TODAY: {special.title.toUpperCase()}</Text> : null}

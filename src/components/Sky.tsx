@@ -17,6 +17,11 @@ export function mix(a: string, b: string, t: number): string {
   return "#" + pa.map((v, i) => Math.round(v + (pb[i]! - v) * k).toString(16).padStart(2, "0")).join("");
 }
 
+/** Lightning flash timing. Shared with the playback screen so thunder follows each flash. Off with reduced motion. */
+export function stormFlash(snap: HourSnapshot, t: number, reducedMotion: boolean): boolean {
+  return snap.rain > 3 && !reducedMotion && Math.floor(t / 1700) % 4 === 0 && t % 1700 < 140;
+}
+
 /** Linear interpolation between two hourly snapshots. */
 export function lerpSnapshot(a: HourSnapshot, b: HourSnapshot, t: number): HourSnapshot {
   const l = (x: number, y: number) => x + (y - x) * t;
@@ -60,7 +65,7 @@ export function Sky({ snap, timeMs, reducedMotion = false }: { snap: HourSnapsho
   const raining = snap.rain > 0;
   const dark = Math.min(1, snap.cloudCover * (raining ? 1 : 0.7));
   const stormy = snap.rain > 3;
-  const flash = stormy && !reducedMotion && Math.floor(t / 1700) % 4 === 0 && t % 1700 < 140;
+  const flash = stormy && stormFlash(snap, t, reducedMotion);
 
   // Sky: posterized bands, 16-bit style.
   let top = mix(mix("#3b4a6b", "#4f86c0", dayness), "#353c46", dark);

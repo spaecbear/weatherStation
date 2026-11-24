@@ -145,6 +145,7 @@ export const PLAYBACK = {
   slowSecondsPerHour: 4.0, // pace within `slowWindowHours` of a deciding hour
   slowWindowHours: 1,
   lingerSeconds: 4.0, // extra time on the deciding hour, scaled by closeness
+  revealHoldSeconds: 1.2, // time freezes this long on each reveal so the moment lands
   minTotalSeconds: 30,
   maxTotalSeconds: 60,
 };

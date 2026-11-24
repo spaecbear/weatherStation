@@ -4,7 +4,10 @@ import { Card, Panel, Screen } from "../components/ui";
 import { Icon } from "../components/Sprite";
 import { SUN } from "../components/pixelArt";
 import type { RoundModel } from "./useRound";
-import { colors, type } from "./theme";
+import { colors, motion, type } from "./theme";
+import { sound } from "./sound";
+import { QuestionIcon } from "../components/QuestionIcon";
+import { TvSegment } from "../components/Scenes";
 import { signed } from "./signalText";
 import { Button } from "../components/ui";
 
@@ -14,7 +17,11 @@ export function VerdictScreen({ m, extra, actions, rival }: { m: RoundModel; ext
   const score = m.result!.score;
   const pop = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    if (score.perfectBonus > 0) Animated.spring(pop, { toValue: 1, friction: 4, useNativeDriver: true }).start();
+    if (score.perfectBonus <= 0) return;
+    sound.sfx("perfect");
+    sound.haptic("perfect");
+    if (motion.reduced) pop.setValue(1);
+    else Animated.spring(pop, { toValue: 1, friction: 4, useNativeDriver: true }).start();
   }, [score.perfectBonus, pop]);
 
   return (
@@ -40,7 +47,10 @@ export function VerdictScreen({ m, extra, actions, rival }: { m: RoundModel; ext
         const d = m.debriefs.find((x) => x.questionId === q.id)!;
         return (
           <Card key={q.id} style={{ gap: 8 }}>
-            <Text style={type.h2}>{q.text}</Text>
+            <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+              <QuestionIcon type={q.type} />
+              <Text style={[type.h2, { flex: 1 }]}>{q.text}</Text>
+            </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <Text style={[type.body, { color: colors.muted }]}>You said {Math.round(qs.forecast * 100)}% · it was {qs.outcome ? "YES" : "NO"}</Text>
               <Text style={[type.big, { color: repColor(qs.rep) }]}>{signed(qs.rep)}</Text>
@@ -60,12 +70,15 @@ export function VerdictScreen({ m, extra, actions, rival }: { m: RoundModel; ext
         </View>
       </Card>
       {rival ? (
-        <Card tone="sunk" style={{ gap: 4 }}>
-          <Text style={type.label}>{rival.name.toUpperCase()}</Text>
-          <Text testID="rival-line" style={type.body}>
-            Chet {signed(rival.rep)} vs you {signed(rival.yourRep)}. {rival.yourRep > rival.rep ? "Doris chalks one up for you." : rival.yourRep < rival.rep ? "Chet takes the day." : "Dead even."}
+        <View>
+          <TvSegment testID="tv" lines={[
+            `"${m.day.questions.map((q) => `${Math.round(rival.calls[q.id]! * 100)}%`).join(", ")}, folks!"`,
+            `Chet ${signed(rival.rep)} today.`,
+          ]} />
+          <Text testID="rival-line" style={[type.body, { marginTop: 6 }]}>
+            You {signed(rival.yourRep)} vs Chet {signed(rival.rep)}. {rival.yourRep > rival.rep ? "Doris chalks one up for you." : rival.yourRep < rival.rep ? "Chet takes the day." : "Dead even."}
           </Text>
-        </Card>
+        </View>
       ) : null}
       {extra}
     </Screen>

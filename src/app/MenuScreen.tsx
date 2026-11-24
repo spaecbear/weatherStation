@@ -10,7 +10,7 @@ interface Props {
   today: string;
   daily: DailyState;
   career: CareerState | null;
-  go: (to: "daily" | "career" | "zen" | "wall" | "calibration") => void;
+  go: (to: "daily" | "career" | "zen" | "wall" | "calibration" | "guide" | "settings") => void;
   devNextDay: () => void;
 }
 
@@ -29,7 +29,7 @@ export function MenuScreen({ today, daily, career, go, devNextDay }: Props) {
     <Screen title="Weather Station" subtitle="Small town. Big sky. Your call." footer={
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <Text style={type.label}>TODAY {today}</Text>
-        <View style={{ width: 150 }}><Button kind="ghost" label="Dev +1 day" onPress={devNextDay} testID="dev-next-day" /></View>
+        {__DEV__ ? <View style={{ width: 150 }}><Button kind="ghost" label="Dev +1 day" onPress={devNextDay} testID="dev-next-day" /></View> : null}
       </View>
     }>
       <Sky snap={TITLE_SNAPS[seasonForDate(today)]} timeMs={0} />
@@ -40,6 +40,8 @@ export function MenuScreen({ today, daily, career, go, devNextDay }: Props) {
       <Tile testID="menu-zen" icon="zen" title="Zen" detail="Endless random days. Nothing saved." onPress={() => go("zen")} />
       <Tile testID="menu-calibration" icon="calibration" title="Calibration" detail="How honest is your confidence?" onPress={() => go("calibration")} />
       <Tile testID="menu-wall" icon="wall" title="History Wall" detail="Every forecaster who held the station." onPress={() => go("wall")} />
+      <Tile testID="menu-guide" icon="guide" title="How to Play" detail="A guided practice day." onPress={() => go("guide")} />
+      <Tile testID="menu-settings" icon="settings" title="Settings" detail="Text size, motion, colours, sound." onPress={() => go("settings")} />
     </Screen>
   );
 }

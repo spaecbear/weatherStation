@@ -13,7 +13,7 @@ describe("playback schedule", () => {
       const r = resolveDay(d);
       const s = playbackSchedule(d, r);
       expect(s.map((x) => x.hour)).toEqual(r.timeline.map((h) => h.hour));
-      const total = s.reduce((a, x) => a + x.durationMs, 0) / 1000;
+      const total = s.reduce((a, x) => a + x.durationMs + x.holdMs, 0) / 1000;
       expect(total).toBeGreaterThanOrEqual(PLAYBACK.minTotalSeconds - 0.05);
       expect(total).toBeLessThanOrEqual(PLAYBACK.maxTotalSeconds + 0.05);
       expect(playbackSchedule(d, r)).toEqual(s);
@@ -29,6 +29,7 @@ describe("playback schedule", () => {
         const hits = s.filter((x) => x.deciding.includes(q.id));
         expect(hits).toHaveLength(1);
         expect(hits[0]!.hour).toBe(decidingHour(q, r));
+        expect(hits[0]!.holdMs).toBeGreaterThanOrEqual(1000); // the reveal always gets a beat
         if (quiet.length) expect(hits[0]!.durationMs).toBeGreaterThan(Math.max(...quiet));
       }
     }

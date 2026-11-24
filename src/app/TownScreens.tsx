@@ -9,7 +9,7 @@ import { Body, Button, Card, H2, Label, Panel, Screen } from "../components/ui";
 import { StepSelector } from "../components/StepSelector";
 import { Icon } from "../components/Sprite";
 import { BOOK, ICON_PALETTE, SUN } from "../components/pixelArt";
-import { colors, fonts, type } from "./theme";
+import { colors, fonts, motion, type } from "./theme";
 import { pct, signed } from "./signalText";
 
 export type StoryItem = { kind: "scene"; id: string } | { kind: "page"; index: number } | { kind: "headline"; h: Headline };
@@ -32,7 +32,10 @@ export function SceneCard({ id }: { id: string }) {
 
 function Newspaper({ h }: { h: Headline }) {
   const pop = useRef(new Animated.Value(0)).current;
-  useEffect(() => { Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }).start(); }, [pop]);
+  useEffect(() => {
+    if (motion.reduced) pop.setValue(1);
+    else Animated.spring(pop, { toValue: 1, friction: 5, useNativeDriver: true }).start();
+  }, [pop]);
   return (
     <Animated.View style={{ transform: [{ rotate: pop.interpolate({ inputRange: [0, 1], outputRange: ["-8deg", "-1deg"] }) }, { scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }}>
       <View style={{ backgroundColor: "#ece4cf", borderWidth: 3, borderColor: colors.outline, padding: 14, gap: 10 }}>

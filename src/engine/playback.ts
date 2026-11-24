@@ -36,6 +36,8 @@ export function decidingHour(q: Question, res: Resolution): number {
 export interface PlaybackStep {
   hour: number;
   durationMs: number;
+  /** Frozen time after the hour plays, while its questions are revealed. */
+  holdMs: number;
   /** Questions deciding at exactly this hour. */
   deciding: string[];
   /** Questions whose deciding hour is near: highlight them. */
@@ -44,8 +46,9 @@ export interface PlaybackStep {
 
 /**
  * Real-time schedule for the day animation. Time slows near each deciding
- * hour and lingers longer the closer the outcome was to flipping. Total is
- * scaled into [minTotalSeconds, maxTotalSeconds].
+ * hour and lingers longer the closer the outcome was to flipping; then time
+ * freezes briefly on the reveal. Total (including holds) is scaled into
+ * [minTotalSeconds, maxTotalSeconds]; holds are never squeezed.
  */
 export function playbackSchedule(day: Day, res: Resolution): PlaybackStep[] {
   const decide = day.questions.map((q) => ({
@@ -60,8 +63,16 @@ export function playbackSchedule(day: Day, res: Resolution): PlaybackStep[] {
     for (const d of at) s += PLAYBACK.lingerSeconds * d.closeness;
     return { hour, seconds: s, deciding: at.map((d) => d.id), focus: near.map((d) => d.id) };
   });
+  const hold = (s: (typeof steps)[number]) => (s.deciding.length ? PLAYBACK.revealHoldSeconds * s.deciding.length : 0);
+  const holds = steps.reduce((a, s) => a + hold(s), 0);
   const total = steps.reduce((a, s) => a + s.seconds, 0);
-  const target = Math.min(PLAYBACK.maxTotalSeconds, Math.max(PLAYBACK.minTotalSeconds, total));
+  const target = Math.min(PLAYBACK.maxTotalSeconds, Math.max(PLAYBACK.minTotalSeconds, total + holds)) - holds;
   const k = target / total;
-  return steps.map((s) => ({ hour: s.hour, durationMs: Math.round(s.seconds * k * 1000), deciding: s.deciding, focus: s.focus }));
+  return steps.map((s) => ({
+    hour: s.hour,
+    durationMs: Math.round(s.seconds * k * 1000),
+    holdMs: Math.round(hold(s) * 1000),
+    deciding: s.deciding,
+    focus: s.focus,
+  }));
 }
