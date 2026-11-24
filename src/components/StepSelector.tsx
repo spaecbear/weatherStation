@@ -9,7 +9,7 @@ export function StepSelector({ value, onChange, testID }: { value?: Step; onChan
       {FORECAST_STEPS.map((step) => {
         const on = value === step;
         return (
-          <Pressable key={step} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => onChange(step)} style={{ flex: 1 }}>
+          <Pressable key={step} accessibilityRole="radio" aria-checked={on} onPress={() => onChange(step)} style={{ flex: 1 }}>
             {({ pressed }) => (
               <Panel tone={on ? "gold" : "sunk"} pressed={pressed} style={{ paddingVertical: 11, alignItems: "center" }}>
                 <Text style={[type.label, { fontSize: 10, color: on ? "#1a1406" : colors.ink }]}>{Math.round(step * 100)}%</Text>

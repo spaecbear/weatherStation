@@ -23,7 +23,7 @@ export function SettingsScreen({ settings, onChange, onTutorial, onBack }: { set
         <H2>TEXT SIZE</H2>
         <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
           {([[1, "Normal"], [1.15, "Large"], [1.3, "Largest"]] as const).map(([v, label]) => (
-            <Pressable key={v} testID={`text-${v}`} accessibilityRole="radio" accessibilityState={{ selected: settings.textScale === v }} onPress={() => set("textScale", v)} style={{ flex: 1 }}>
+            <Pressable key={v} testID={`text-${v}`} accessibilityRole="radio" aria-checked={settings.textScale === v} onPress={() => set("textScale", v)} style={{ flex: 1 }}>
               <Panel tone={settings.textScale === v ? "gold" : "sunk"} style={{ paddingVertical: 10, alignItems: "center" }}>
                 <Text style={[type.label, { color: settings.textScale === v ? "#1a1406" : colors.ink }]}>{label.toUpperCase()}</Text>
               </Panel>

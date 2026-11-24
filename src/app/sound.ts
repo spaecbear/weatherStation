@@ -25,12 +25,13 @@ function player(name: SoundName): AudioPlayer | null {
   try {
     if (!modeSet) { modeSet = true; void setAudioModeAsync({ playsInSilentMode: false }).catch(() => {}); }
     return (players[name] ??= createAudioPlayer(SRC[name]));
-  } catch {
+  } catch (e) {
+    console.warn("[sound:create]", e);
     return null;
   }
 }
 
-const safe = (f: () => void) => { try { f(); } catch { /* audio is optional */ } };
+const safe = (f: () => void) => { try { f(); } catch (e) { console.warn("[sound]", e); } };
 
 export const sound = {
   configure(p: { sound: boolean; music: boolean; haptics: boolean }) {
