@@ -59,6 +59,12 @@ const OUTCOME_EMOJI: Record<QuestionType, [yes: string, no: string]> = {
   highAbove: ["🔥", "☁️"],
   windAbove: ["💨", "🍃"],
   fogAtDawn: ["🌫️", "🌅"],
+  frostAtDawn: ["🧊", "🌱"],
+  snowToday: ["❄️", "☁️"],
+  allDaySun: ["☀️", "🌦️"],
+  doubleRainbow: ["🌈", "☁️"],
+  auroraNight: ["🌌", "🌑"],
+  hundredYearStorm: ["⛈️", "🌥️"],
 };
 
 /** Clipboard share text. Shows what the weather did and how many calls landed, never the calls. */

@@ -1,10 +1,16 @@
-import { CAREER, RATING, type EquipmentId } from "./config";
-import { generateDay, playDay, type PlayResult } from "./day";
+import { CAREER, CLIENTS, RATING, TOWN, type EquipmentId, type SpecialId } from "./config";
+import { playDay, type PlayResult } from "./day";
 import { applyDecay, applyRep, isRetired, missedDays } from "./rating";
 import { mulberry32, pick, subSeed } from "./rng";
 import { getSignals, loadoutFor, sourcesForDay, type Loadout } from "./signals";
 import { addToCalibration, dayPay, emptyCalibration, radarBreaks, recordJournal, type Calibration, type Journal } from "./progression";
-import type { Day, Signal, SourceId, Step } from "./types";
+import type { ClientId, Day, Signal, SourceId, Step } from "./types";
+import { isCorrectSide } from "./scoring";
+import {
+  buildCareerDay, calendar, chalkAdd, contractPay, freshChalk, freshTrust, resolveSeasonCall, rivalScore, seasonCallOffer,
+  specialKeyQuestion, trustAfter, type Chalkboard, type SeasonCall, type Trust,
+} from "./town";
+import { clientSceneId, LONG_SHOT_HEADLINES, SCENES, specialHeadline, unlockedPages, type Headline } from "./story";
 import { seasonForIndex } from "./weather";
 
 export interface DayRecord {
@@ -54,7 +60,18 @@ export interface CareerState {
   equipment: EquipmentId[];
   brokenEquipment: EquipmentId[];
   money: number;
-  clientTrust: Record<string, number>;
+  /** Client trust 0..5 (reset to wary on succession). */
+  trust: Trust;
+  /** Story: scenes already shown and notebook pages found (kept through succession). */
+  seenScenes: string[];
+  notebook: number[];
+  /** Diner chalkboard: this season, plus past seasons. */
+  chalk: Chalkboard;
+  chalkHistory: Chalkboard[];
+  /** Long-range call for the current season (made in its first week). */
+  seasonCall: SeasonCall | null;
+  /** The Gazette: most recent headlines first. */
+  newspaper: (Headline & { dayIndex: number })[];
 }
 
 const APPRENTICE_NAMES = [
@@ -92,7 +109,13 @@ export function newCareer(opts: { name: string; hardcore: boolean; today: string
     equipment: [],
     brokenEquipment: [],
     money: 0,
-    clientTrust: {},
+    trust: freshTrust(),
+    seenScenes: [],
+    notebook: [],
+    chalk: freshChalk(0),
+    chalkHistory: [],
+    seasonCall: null,
+    newspaper: [],
   };
 }
 
@@ -145,8 +168,33 @@ export function normalizeCareer(raw: CareerState): CareerState {
     equipment: (c.equipment ?? []).filter((e) => ["rainGauge", "upstreamRadio", "weatherBalloon", "radar"].includes(e)),
     brokenEquipment: c.brokenEquipment ?? [],
     money: c.money ?? 0,
+    trust: { ...freshTrust(), ...(c.trust ?? {}) },
+    seenScenes: c.seenScenes ?? [],
+    notebook: c.notebook ?? [],
+    chalk: c.chalk ?? freshChalk(Math.floor(c.forecaster.dayCount / CAREER.daysPerSeason)),
+    chalkHistory: c.chalkHistory ?? [],
+    seasonCall: c.seasonCall ?? null,
+    newspaper: c.newspaper ?? [],
   };
 }
+
+// ---------- Long-range season call ----------
+
+/** The season call on offer right now (first week of a season, not yet made), else null. */
+export function seasonCallAvailable(c: CareerState): SeasonCall | null {
+  const cal = calendar(c.forecaster.dayCount);
+  if (cal.dayInSeason >= TOWN.seasonCallDays) return null;
+  if (c.seasonCall && c.seasonCall.seasonIndex === cal.seasonIndex) return null;
+  return seasonCallOffer((i) => careerDayAt(c, i), cal.seasonIndex, cal.dayInSeason);
+}
+
+export function makeSeasonCall(c: CareerState, call: Step): CareerState {
+  const offer = seasonCallAvailable(c);
+  if (!offer) throw new Error("No season call available");
+  return { ...c, seasonCall: { ...offer, call } };
+}
+
+export const seasonCallText = (sc: SeasonCall) => `Will it rain on more than ${sc.threshold} of this season's ${CAREER.daysPerSeason} days?`;
 
 export interface CareerDayOutcome {
   career: CareerState;
@@ -158,26 +206,116 @@ export interface CareerDayOutcome {
   radarBroke: boolean;
   /** The signals the player saw (for the debrief and journal). */
   signals: Signal[];
+  contracts: { questionId: string; client: ClientId; pay: number; trustBefore: number; trustAfter: number }[];
+  rival: { calls: Record<string, Step>; rep: number };
+  /** Your rep without the participation trickle, for a fair comparison with the rival. */
+  yourRep: number;
+  seasonCallResult: { call: SeasonCall; rainyDays: number; happened: boolean; rep: number } | null;
+  /** In order: dialogue scenes, then notebook pages, then newspaper headlines. */
+  story: { scenes: string[]; pages: number[]; headlines: Headline[] };
 }
 
 /** Score and commit a career day. Call at submit time so quitting mid-playback can't undo it. */
 export function playCareerDay(c: CareerState, calls: Record<string, Step>, today: string): CareerDayOutcome {
   if (isCareerRetired(c, today)) throw new Error("This forecaster has retired");
+  const f = c.forecaster;
+  const cal = calendar(f.dayCount);
   const day = nextCareerDay(c);
   const loadout = careerLoadout(c);
   const signals = getSignals(day, sourcesForDay(day, loadout), loadout.noise);
   const result = playDay(day, calls, "career");
   const ev = result.resolution.events;
+  const outcomes = Object.fromEntries(result.resolution.results.map((r) => [r.questionId, r.outcome]));
+  const repOf = (id: string) => result.score.questions.find((q) => q.questionId === id)!.rep;
   const radarBroke = c.equipment.includes("radar") && !c.brokenEquipment.includes("radar") && radarBreaks(day, ev);
-  const pay = dayPay(result.score.total);
+
+  // Clients
+  let trust = { ...c.trust };
+  const contracts: CareerDayOutcome["contracts"] = [];
+  const scenes: string[] = [];
+  const seen = new Set(c.seenScenes);
+  for (const q of day.questions) {
+    if (!q.client) continue;
+    const rep = repOf(q.id);
+    const before = trust[q.client];
+    const after = trustAfter(q.client, before, rep);
+    const bonus = CLIENTS[q.client].snowBonus && ev.snows ? CLIENTS[q.client].snowBonus! : 0;
+    contracts.push({ questionId: q.id, client: q.client, pay: contractPay(q.fee!, before, rep) + bonus, trustBefore: before, trustAfter: after });
+    trust = { ...trust, [q.client]: after };
+    for (const level of TOWN.sceneAt) {
+      const id = clientSceneId(q.client, level);
+      if (after >= level && SCENES[id] && !seen.has(id)) { scenes.push(id); seen.add(id); }
+    }
+  }
+  const pay = dayPay(result.score.total) + contracts.reduce((a, x) => a + x.pay, 0);
+
+  // Rival + chalkboard
+  const rival = rivalScore(day, outcomes);
+  const yourRep = result.score.total - result.score.trickle;
+  let chalkHistory = c.chalkHistory;
+  let chalk = c.chalk.seasonIndex === cal.seasonIndex ? c.chalk : freshChalk(cal.seasonIndex);
+  if (c.chalk.seasonIndex !== cal.seasonIndex) chalkHistory = [...chalkHistory, c.chalk];
+  chalk = chalkAdd(chalk, yourRep, rival.score.total);
+
+  // Headlines
+  const headlines: Headline[] = [];
+  if (day.special) {
+    const sid = day.special as SpecialId;
+    const key = day.questions.find((q) => q.type === specialKeyQuestion(sid))!;
+    const right = sid === "countyFair"
+      ? day.questions.reduce((a, q) => a + repOf(q.id), 0) > 0
+      : isCorrectSide(calls[key.id]!, outcomes[key.id]!);
+    headlines.push(specialHeadline(sid, outcomes[key.id]!, right, f.name));
+  }
+  for (const q of day.questions) {
+    if (!q.longShot || !outcomes[q.id]) continue;
+    const called = calls[q.id]! >= TOWN.longShotBrag;
+    headlines.push({
+      kicker: called ? "CALLED IT!" : "LONG SHOT",
+      title: LONG_SHOT_HEADLINES[q.type] ?? "A RARE SIGHT",
+      body: called ? `${f.name} gave it ${Math.round(calls[q.id]! * 100)}% when nobody else would.` : "Nobody saw it coming. Not even the station.",
+      celebrate: called,
+    });
+  }
+
+  // Signature-day story scenes; the storm brings the finale (and Doris's confession).
+  if (day.special) {
+    if (day.special === "hundredYearStorm") {
+      for (const id of ["skeptic-4", "finale"]) if (!seen.has(id)) { scenes.push(id); seen.add(id); }
+    }
+  }
+
+  // Season end: long-range call and the chalkboard verdict
+  let ratingDelta = result.score.total;
+  let seasonCallResult: CareerDayOutcome["seasonCallResult"] = null;
+  let seasonCall = c.seasonCall;
+  if (cal.dayInSeason === CAREER.daysPerSeason - 1) {
+    if (seasonCall && seasonCall.seasonIndex === cal.seasonIndex && seasonCall.call !== null) {
+      const r = resolveSeasonCall((i) => careerDayAt(c, i), seasonCall);
+      seasonCallResult = { call: seasonCall, ...r };
+      ratingDelta += r.rep;
+      headlines.push({
+        kicker: "LONG-RANGE CALL",
+        title: `${r.rainyDays} RAINY DAYS THIS ${cal.season.toUpperCase()}`,
+        body: `${f.name} gave ${Math.round(seasonCall.call! * 100)}% to "more than ${seasonCall.threshold}". ${r.rep > 0 ? "Right side." : r.rep < 0 ? "Wrong side." : "A shrug, and an honest one."} (${r.rep > 0 ? "+" : ""}${r.rep} rep)`,
+      });
+      seasonCall = null;
+    }
+    headlines.push({
+      kicker: "THE DINER CHALKBOARD",
+      title: chalk.you >= chalk.rival ? `${f.name.toUpperCase()} TOPS CHET FOR THE ${cal.season.toUpperCase()}` : `CHET STORM TAKES THE ${cal.season.toUpperCase()}`,
+      body: `Season totals: ${f.name} ${chalk.you}, Chet ${chalk.rival}. Day wins ${chalk.youWins}-${chalk.rivalWins}.`,
+      celebrate: chalk.you > chalk.rival,
+    });
+  }
+
   const ratingBefore = currentRating(c, today);
-  const ratingAfter = applyRep(ratingBefore, result.score.total);
-  const f = c.forecaster;
+  const ratingAfter = applyRep(ratingBefore, ratingDelta);
   const record: DayRecord = {
     dayIndex: f.dayCount,
     date: today,
     calls: { ...calls },
-    outcomes: Object.fromEntries(result.resolution.results.map((r) => [r.questionId, r.outcome])),
+    outcomes,
     rep: result.score.total,
     perfect: result.score.perfectBonus > 0,
     ratingAfter,
@@ -191,6 +329,11 @@ export function playCareerDay(c: CareerState, calls: Record<string, Step>, today
     perfectDays: f.perfectDays + (record.perfect ? 1 : 0),
     history: [...f.history, record].slice(-CAREER.historyLimit),
   };
+
+  // Notebook pages unlock on total station days (all forecasters) and rating.
+  const stationDays = c.historyWall.reduce((a, w) => a + w.days, 0) + forecaster.dayCount;
+  const pages = unlockedPages(stationDays, ratingAfter).filter((p) => !c.notebook.includes(p));
+
   const career: CareerState = {
     ...c,
     forecaster,
@@ -198,8 +341,24 @@ export function playCareerDay(c: CareerState, calls: Record<string, Step>, today
     calibration: addToCalibration(c.calibration, result.score.questions),
     money: c.money + pay,
     brokenEquipment: radarBroke ? [...c.brokenEquipment, "radar"] : c.brokenEquipment,
+    trust,
+    seenScenes: [...seen],
+    notebook: [...c.notebook, ...pages],
+    chalk,
+    chalkHistory,
+    seasonCall,
+    newspaper: [...headlines.map((h) => ({ ...h, dayIndex: f.dayCount })), ...c.newspaper].slice(0, 40),
   };
-  return { career, result, ratingBefore, ratingAfter, retired: isRetired(ratingAfter), pay, radarBroke, signals };
+  return {
+    career, result, ratingBefore, ratingAfter, retired: isRetired(ratingAfter), pay, radarBroke, signals,
+    contracts, rival: { calls: rival.calls, rep: rival.score.total }, yourRep, seasonCallResult,
+    story: { scenes, pages, headlines },
+  };
+}
+
+/** The scene to show on the station screen before a signature day, if any. */
+export function preDayScene(day: Day): string | null {
+  return day.special ?? null;
 }
 
 function howWentOut(c: CareerState): string {
@@ -218,8 +377,7 @@ function howWentOut(c: CareerState): string {
 }
 
 export function careerDayAt(c: CareerState, dayIndex: number): Day {
-  const seed = subSeed(c.seedBase, `career:${c.generation}:${dayIndex}`);
-  return generateDay(seed, seasonForIndex(Math.floor(dayIndex / CAREER.daysPerSeason)));
+  return buildCareerDay(subSeed(c.seedBase, `career:${c.generation}:${dayIndex}`), dayIndex);
 }
 
 export function wallEntryFor(c: CareerState, today: string): WallEntry {
@@ -254,6 +412,9 @@ export function succeed(c: CareerState, apprenticeName: string, today: string): 
     equipment: [],
     brokenEquipment: [],
     money: 0,
-    clientTrust: {},
+    trust: freshTrust(TOWN.apprenticeTrust), // the town is warier of the new forecaster
+    chalk: freshChalk(0),
+    seasonCall: null,
+    // kept: journal, calibration, notebook, seenScenes, chalkHistory, newspaper, historyWall
   };
 }

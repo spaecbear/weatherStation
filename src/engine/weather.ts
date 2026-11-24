@@ -82,3 +82,28 @@ export function pFogAtDawn(s: HiddenState): number {
     ),
   );
 }
+
+// ---- Phase 5 question types. Compound events are products of independent rolls,
+// so the stated probability is exactly the chance the resolution produces. ----
+
+/** Frost at dawn ⇔ the dawn low (high − dawnLowOffset) is at or below freezing. */
+export const FROST_HIGH = 32 + 9; // °F high that gives a 32°F dawn (TIMELINE.dawnLowOffset = 9)
+export const SNOW_HIGH = 36; // precipitation falls as snow when the high stays below this
+
+export const pFrostAtDawn = (s: HiddenState) => clampProb(1 - pHighAbove(s, FROST_HIGH));
+export const pSnowToday = (s: HiddenState) => clampProb(pRain(s) * (1 - pHighAbove(s, SNOW_HIGH)));
+export const pAllDaySun = (s: HiddenState) => clampProb((1 - pRain(s)) * (1 - pFogAtDawn(s)));
+
+export const LONG_SHOT = {
+  rainbowMax: 0.25, // chance of a double rainbow after rain on a broken-cloud day
+  auroraBase: 0.02,
+  auroraClear: 0.12, // extra chance on a dry, clear winter night
+  stormWind: 40, // mph peak wind that, with rain, makes it "the hundred-year storm"
+};
+
+/** Chance of a double rainbow given that it rains. */
+export const rainbowGivenRain = (s: HiddenState) => LONG_SHOT.rainbowMax * (1 - s.frontStrength);
+export const pDoubleRainbow = (s: HiddenState) => pRain(s) * rainbowGivenRain(s);
+export const pAuroraNight = (s: HiddenState) =>
+  s.season === "winter" || s.season === "autumn" ? LONG_SHOT.auroraBase + LONG_SHOT.auroraClear * (1 - s.humidity) : 0.01;
+export const pHundredYearStorm = (s: HiddenState) => pRain(s) * pWindAbove(s, LONG_SHOT.stormWind);

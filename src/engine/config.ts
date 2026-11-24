@@ -156,3 +156,50 @@ export const CAREER = {
   historyLimit: 1000, // day records kept per forecaster
   calibrationMin: 10, // samples per step before the calibration chart shows a bar
 };
+
+// ---------------- Phase 5: town ----------------
+
+export const TOWN = {
+  daysPerYear: 112, // 4 seasons × CAREER.daysPerSeason
+  contractChance: 0.4, // per ordinary day, a client replaces one question
+  longShotChance: 0.05, // per ordinary day without a contract, a long shot replaces one question
+  trustStart: 1,
+  apprenticeTrust: 0.5, // "the town is warier of the new forecaster"
+  trustMax: 5,
+  sceneAt: [2, 4], // trust levels that unlock a client's dialogue scenes
+  seasonCallDays: 7, // long-range call can be made in the first week of a season
+  longShotBrag: 0.3, // a long shot counts as "called" if it happens and you said at least this
+};
+
+export type ClientKey = "farmer" | "fleet" | "wedding" | "fair" | "ski" | "skeptic";
+export const CLIENTS: Record<ClientKey, {
+  name: string;
+  interests: import("./types").QuestionType[];
+  fee: number;
+  missMult: number; // trust lost on a miss is multiplied by this
+  seasons: Season[];
+  windOffset?: number; // the fleet asks about gales, not breezes
+  posts: boolean; // posts ordinary contracts (the fair only appears on fair day)
+  snowBonus?: number;
+}> = {
+  farmer: { name: "Farmer Bell", interests: ["frostAtDawn", "rainBeforeNoon", "rainToday"], fee: 20, missMult: 1, seasons: ["spring", "summer", "autumn"], posts: true },
+  fleet: { name: "The fishing fleet", interests: ["windAbove", "rainToday"], fee: 30, missMult: 1.5, seasons: ["spring", "summer", "autumn", "winter"], windOffset: 6, posts: true },
+  wedding: { name: "Marigold Weddings", interests: ["allDaySun", "rainToday"], fee: 45, missMult: 2, seasons: ["spring", "summer", "autumn"], posts: true },
+  fair: { name: "The County Fair", interests: ["rainBeforeNoon", "highAbove", "windAbove"], fee: 60, missMult: 1.5, seasons: ["summer"], posts: false },
+  ski: { name: "Ridgetop Ski Lodge", interests: ["snowToday", "frostAtDawn"], fee: 35, missMult: 1, seasons: ["winter"], posts: true, snowBonus: 20 },
+  skeptic: { name: "Doris at the diner", interests: ["rainToday", "highAbove", "windAbove", "fogAtDawn", "frostAtDawn", "snowToday", "allDaySun"], fee: 10, missMult: 1, seasons: ["spring", "summer", "autumn", "winter"], posts: true },
+};
+
+/** Signature days on the career calendar (day = index within the season). */
+export const SPECIALS = [
+  { id: "monsoon", season: "spring", day: 6, title: "Monsoon Onset" },
+  { id: "festival", season: "summer", day: 9, title: "Summer Festival" },
+  { id: "countyFair", season: "summer", day: 24, title: "County Fair" },
+  { id: "firstFrost", season: "autumn", day: 10, title: "First Frost Watch" },
+  { id: "firstSnow", season: "winter", day: 8, title: "First Snow Watch" },
+  { id: "hundredYearStorm", season: "winter", day: 26, title: "The Hundred-Year Storm", firstYearOnly: true },
+] as const satisfies readonly { id: string; season: Season; day: number; title: string; firstYearOnly?: boolean }[];
+export type SpecialId = (typeof SPECIALS)[number]["id"];
+
+/** The rival: reads the starting instruments well, but plays it bold for the cameras. */
+export const RIVAL = { name: "Chet Storm, Channel 6", boldness: 1.5, hunchSd: 0.08 };

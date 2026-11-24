@@ -3,8 +3,11 @@ import { dailySeed, mulberry32, subSeed } from "./rng";
 import { generateQuestions } from "./questions";
 import { applyRep, isRetired } from "./rating";
 import { scoreDay } from "./scoring";
-import type { Day, DayScore, HourSnapshot, Mode, QuestionResolution, Resolution } from "./types";
-import { expectedHigh, expectedPeakWind, generateState, logit, pFogAtDawn, pRain, pRainBeforeNoon, seasonForDate } from "./weather";
+import type { Day, DayEvents, DayScore, HourSnapshot, Mode, QuestionResolution, Resolution } from "./types";
+import {
+  expectedHigh, expectedPeakWind, FROST_HIGH, generateState, LONG_SHOT, logit, pAuroraNight, pFogAtDawn, pHighAbove, pRain, pRainBeforeNoon,
+  pWindAbove, rainbowGivenRain, seasonForDate, SNOW_HIGH,
+} from "./weather";
 
 export function generateDay(seed: number, season: Season, date?: string): Day {
   const state = generateState(mulberry32(subSeed(seed, "state")), season);
@@ -37,6 +40,8 @@ export function resolveDay(day: Day): Resolution {
   const uHigh = roll(day.seed, "high");
   const uWind = roll(day.seed, "wind");
   const uFog = roll(day.seed, "fog");
+  const uBow = roll(day.seed, "rainbow");
+  const uAurora = roll(day.seed, "aurora");
 
   const pR = pRain(s);
   const pRbn = pRainBeforeNoon(s);
@@ -46,6 +51,15 @@ export function resolveDay(day: Day): Resolution {
   const foggy = uFog < pF;
   const high = expectedHigh(s) + WEIGHTS.high.spread * logit(1 - uHigh);
   const peakWind = Math.max(0, expectedPeakWind(s) + WEIGHTS.wind.spread * logit(1 - uWind));
+  // Compound events reuse the same rolls, so they always agree with the simple ones.
+  const frost = high <= FROST_HIGH;
+  const snows = rains && high < SNOW_HIGH;
+  const pBow = rainbowGivenRain(s);
+  const rainbow = rains && uBow < pBow;
+  const pAur = pAuroraNight(s);
+  const aurora = uAurora < pAur;
+  const cR = closeness(uRain, pR);
+  const both = (a: boolean, ca: number, b: boolean, cb: number) => (a && b ? Math.min(ca, cb) : !a && !b ? Math.max(ca, cb) : !a ? ca : cb);
 
   const results: QuestionResolution[] = day.questions.map((q) => {
     switch (q.type) {
@@ -59,17 +73,30 @@ export function resolveDay(day: Day): Resolution {
         return { questionId: q.id, outcome: high > q.threshold!, closeness: closeness(uHigh, q.trueProbability) };
       case "windAbove":
         return { questionId: q.id, outcome: peakWind > q.threshold!, closeness: closeness(uWind, q.trueProbability) };
+      case "frostAtDawn":
+        return { questionId: q.id, outcome: frost, closeness: closeness(uHigh, pHighAbove(s, FROST_HIGH)) };
+      case "snowToday": {
+        const cold = high < SNOW_HIGH;
+        return { questionId: q.id, outcome: snows, closeness: both(rains, cR, cold, closeness(uHigh, pHighAbove(s, SNOW_HIGH))) };
+      }
+      case "allDaySun":
+        return { questionId: q.id, outcome: !rains && !foggy, closeness: both(!rains, cR, !foggy, closeness(uFog, pF)) };
+      case "doubleRainbow":
+        return { questionId: q.id, outcome: rainbow, closeness: both(rains, cR, uBow < pBow, closeness(uBow, pBow)) };
+      case "auroraNight":
+        return { questionId: q.id, outcome: aurora, closeness: closeness(uAurora, pAur) };
+      case "hundredYearStorm": {
+        const gale = peakWind > LONG_SHOT.stormWind;
+        return { questionId: q.id, outcome: rains && gale, closeness: both(rains, cR, gale, closeness(uWind, pWindAbove(s, LONG_SHOT.stormWind))) };
+      }
     }
   });
 
-  const events = { rains, rainsBeforeNoon, foggy, high, peakWind };
+  const events: DayEvents = { rains, rainsBeforeNoon, foggy, high, peakWind, snows, frost, rainbow, aurora };
   return { results, events, timeline: buildTimeline(day, events) };
 }
 
-function buildTimeline(
-  day: Day,
-  ev: { rains: boolean; rainsBeforeNoon: boolean; foggy: boolean; high: number; peakWind: number },
-): HourSnapshot[] {
+function buildTimeline(day: Day, ev: DayEvents): HourSnapshot[] {
   const s = day.state;
   const { startHour, endHour, peakTempHour, dawnLowOffset } = TIMELINE;
   const clampH = (h: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(h)));
@@ -93,6 +120,7 @@ function buildTimeline(
     const raining = h >= rainStart && h < rainEnd;
     const hoursToRain = rainStart - h;
     let cloud = Math.min(0.9, 0.2 + 0.6 * s.humidity * s.frontStrength + 0.2 * s.humidity);
+    if (!ev.rains && !ev.foggy) cloud = Math.min(cloud, 0.35); // a clear day looks clear
     if (raining) cloud = 1;
     else if (hoursToRain > 0 && hoursToRain <= 3) cloud = Math.max(cloud, 1 - hoursToRain * 0.15);
     const windShape = Math.max(0.4, 1 - Math.abs(h - windPeakHour) / 8);
@@ -103,6 +131,10 @@ function buildTimeline(
       temperature: low + (ev.high - low) * shape,
       wind: ev.peakWind * windShape,
       fog: ev.foggy && h <= 8,
+      snow: raining && ev.snows,
+      // the double rainbow shows as the rain clears (or at dusk if it rains till the end)
+      rainbow: ev.rainbow && (rainEnd > endHour ? h === endHour : h >= rainEnd && h < rainEnd + 2),
+      aurora: ev.aurora && h === endHour,
     });
   }
   return out;

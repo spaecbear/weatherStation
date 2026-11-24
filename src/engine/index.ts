@@ -14,3 +14,5 @@ export * from "./daily";
 export * from "./career";
 export * from "./progression";
 export * from "./estimate";
+export * from "./town";
+export * from "./story";

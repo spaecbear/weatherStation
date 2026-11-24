@@ -33,6 +33,23 @@ export function contributions(q: Question, day: Day): Partial<Record<Var, number
         frontStrength: (w.frontBoost * (s.frontStrength - sp.frontStrength[0])) / w.spread,
       };
     }
+    case "frostAtDawn": {
+      const w = WEIGHTS.high;
+      return {
+        tempBaseline: -(s.tempBaseline - sp.tempBaseline[0]) / w.spread,
+        frontStrength: (w.frontCooling * (s.frontStrength - sp.frontStrength[0])) / w.spread,
+      };
+    }
+    case "snowToday":
+      return { ...rain, tempBaseline: -(s.tempBaseline - sp.tempBaseline[0]) / WEIGHTS.high.spread };
+    case "allDaySun":
+    case "doubleRainbow":
+    case "hundredYearStorm": {
+      const flip = q.type === "allDaySun" ? -1 : 1;
+      return { humidity: flip * rain.humidity, frontStrength: flip * rain.frontStrength, pressureTrend: flip * rain.pressureTrend };
+    }
+    case "auroraNight":
+      return { humidity: -2 * (s.humidity - sp.humidity[0]) };
     case "fogAtDawn": {
       const f = WEIGHTS.fog;
       return {

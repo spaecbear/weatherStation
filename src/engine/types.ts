@@ -15,7 +15,21 @@ export interface HiddenState {
   upperWinds: number; // mph aloft
 }
 
-export type QuestionType = "rainToday" | "rainBeforeNoon" | "highAbove" | "windAbove" | "fogAtDawn";
+export type QuestionType =
+  | "rainToday"
+  | "rainBeforeNoon"
+  | "highAbove"
+  | "windAbove"
+  | "fogAtDawn"
+  | "frostAtDawn"
+  | "snowToday"
+  | "allDaySun"
+  // long shots: rare outcomes that only appear occasionally
+  | "doubleRainbow"
+  | "auroraNight"
+  | "hundredYearStorm";
+
+export type ClientId = "farmer" | "fleet" | "wedding" | "fair" | "ski" | "skeptic";
 
 export interface Question {
   id: string;
@@ -24,10 +38,17 @@ export interface Question {
   text: string;
   /** Hidden from the player. */
   trueProbability: number;
+  /** Set when a client posted this question as a contract. */
+  client?: ClientId;
+  /** Contract fee before trust scaling. */
+  fee?: number;
+  longShot?: boolean;
 }
 
 export interface Day {
   date?: string;
+  /** Career calendar event, e.g. "countyFair" (Phase 5). */
+  special?: string;
   seed: number;
   state: HiddenState;
   questions: Question[];
@@ -56,6 +77,9 @@ export interface HourSnapshot {
   temperature: number; // °F
   wind: number; // mph
   fog: boolean;
+  snow?: boolean; // precipitation is snow
+  rainbow?: boolean;
+  aurora?: boolean;
 }
 
 /** What the weather actually did, whether or not a question asked about it. */
@@ -65,6 +89,10 @@ export interface DayEvents {
   foggy: boolean;
   high: number;
   peakWind: number;
+  snows: boolean;
+  frost: boolean;
+  rainbow: boolean;
+  aurora: boolean;
 }
 
 export interface Resolution {

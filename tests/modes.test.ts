@@ -119,7 +119,7 @@ describe("career", () => {
 
   it("succession keeps journal + wall, resets forecaster, equipment, money, trust", () => {
     let c = withRating(fresh(), 210, D0);
-    c = { ...c, journal: { swallowsLow: { samples: 40, agreed: 30 } }, equipment: ["upstreamRadio"], brokenEquipment: ["radar"], money: 120, clientTrust: { farmer: 3 } };
+    c = { ...c, journal: { swallowsLow: { samples: 40, agreed: 30 } }, equipment: ["upstreamRadio"], brokenEquipment: ["radar"], money: 120, trust: { ...c.trust, farmer: 3 } };
     const out = playCareerDay(c, wrongCalls(c), D0);
     expect(() => succeed(c, "Bram", D0)).toThrow(); // not retired yet
     const next = succeed(out.career, "Bram", addDays(D0, 1))!;
@@ -133,7 +133,7 @@ describe("career", () => {
     expect(next.equipment).toEqual([]);
     expect(next.brokenEquipment).toEqual([]);
     expect(next.money).toBe(0);
-    expect(next.clientTrust).toEqual({});
+    expect(Object.values(next.trust).every((t) => t === 0.5)).toBe(true); // wary of the apprentice
     expect(next.historyWall).toHaveLength(1);
     expect(next.historyWall[0]).toMatchObject({ name: "Ada", generation: 1, days: 1 });
     expect(next.historyWall[0]!.howWentOut).toMatch(/Retired by the council after 1 day\./);

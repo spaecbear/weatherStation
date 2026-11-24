@@ -20,8 +20,8 @@ describe("money", () => {
   it("career days add pay", () => {
     const c = newCareer({ name: "A", hardcore: false, today: D0, seedBase: 3 });
     const out = playCareerDay(c, Object.fromEntries(nextCareerDay(c).questions.map((q) => [q.id, 0.5 as Step])), D0);
-    expect(out.pay).toBe(5);
-    expect(out.career.money).toBe(5);
+    expect(out.pay).toBe(5 + out.contracts.reduce((a, x) => a + x.pay, 0));
+    expect(out.career.money).toBe(out.pay);
   });
 });
 

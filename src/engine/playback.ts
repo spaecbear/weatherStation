@@ -18,7 +18,18 @@ export function decidingHour(q: Question, res: Resolution): number {
       return tl.reduce((best, h) => (h.wind > best.wind ? h : best)).hour;
     }
     case "fogAtDawn":
+    case "frostAtDawn":
       return TIMELINE.startHour;
+    case "snowToday":
+      return outcome ? first((h) => h.rain > 0, TIMELINE.endHour) : TIMELINE.endHour;
+    case "allDaySun":
+      return outcome ? TIMELINE.endHour : first((h) => h.rain > 0 || h.fog, TIMELINE.endHour);
+    case "doubleRainbow":
+      return outcome ? first((h) => Boolean(h.rainbow), TIMELINE.endHour) : TIMELINE.endHour;
+    case "auroraNight":
+      return TIMELINE.endHour;
+    case "hundredYearStorm":
+      return tl.reduce((best, h) => (h.wind > best.wind ? h : best)).hour;
   }
 }
 
