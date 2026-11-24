@@ -14,8 +14,8 @@ export function generateDay(seed: number, season: Season, date?: string): Day {
   return { date, seed, state, questions: generateQuestions(seed, state) };
 }
 
-export function generateDailyDay(dateUtc: string): Day {
-  return generateDay(dailySeed(dateUtc), seasonForDate(dateUtc), dateUtc);
+export function generateDailyDay(date: string): Day {
+  return generateDay(dailySeed(date), seasonForDate(date), date);
 }
 
 const EPS = 1e-6;

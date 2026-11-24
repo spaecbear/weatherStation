@@ -15,12 +15,14 @@ import { money, pct, SIGNAL_EXPLAIN } from "./signalText";
 
 const EQUIP_ICON: Record<EquipmentId, string[]> = {
   rainGauge: RAIN_GAUGE,
+  thermometer: SOURCE_ICONS.thermometer,
   upstreamRadio: SOURCE_ICONS.upstreamRadio,
   weatherBalloon: SOURCE_ICONS.weatherBalloon,
   radar: SOURCE_ICONS.radar,
 };
 const EQUIP_TEXT: Record<EquipmentId, string> = {
   rainGauge: "A proper gauge to check the hygrometer against. Humidity readings get much sharper.",
+  thermometer: "Records the overnight low and morning climb. Tells you how warm the day wants to be.",
   upstreamRadio: "A line to the station upriver. Tells you when the front will reach town.",
   weatherBalloon: "Measures winds aloft. A big help on wind calls.",
   radar: "Times the front better than the radio. Big storms can knock it out.",

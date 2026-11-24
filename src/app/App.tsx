@@ -19,7 +19,7 @@ import { Round } from "./Round";
 import { CareerSetupScreen, FarewellScreen, HistoryWallScreen, OfficeScreen } from "./CareerScreens";
 import { CalibrationScreen, ShopScreen, JournalScreen, Wallet } from "./ProgressScreens";
 import { NotebookScreen, SceneCard, StoryScreen, TownScreen, type StoryItem } from "./TownScreens";
-import { shiftClock, todayUtc } from "./clock";
+import { shiftClock, today as todayLocal } from "./clock";
 import { colors } from "./theme";
 import { money, signed } from "./signalText";
 
@@ -47,7 +47,7 @@ export default function App() {
   const [daily, setDaily] = useState<DailyState | null>(null);
   const [career, setCareer] = useState<CareerState | null>(null);
   const [route, setRoute] = useState<Route>({ name: "menu" });
-  const [today, setToday] = useState(todayUtc());
+  const [today, setToday] = useState(todayLocal());
   const [lastCareerDay, setLastCareerDay] = useState<CareerDayOutcome | null>(null);
   const [copied, setCopied] = useState(false);
   const [fontsLoaded] = useFonts({ PressStart2P_400Regular, VT323_400Regular });
@@ -61,7 +61,7 @@ export default function App() {
   }, []);
 
   const toMenu = useCallback(() => {
-    setToday(todayUtc());
+    setToday(todayLocal());
     setRoute({ name: "menu" });
   }, []);
 
@@ -82,7 +82,7 @@ export default function App() {
       screen = (
         <MenuScreen
           today={today} daily={daily} career={career}
-          devNextDay={() => { shiftClock(1); setToday(todayUtc()); }}
+          devNextDay={() => { shiftClock(1); setToday(todayLocal()); }}
           go={(to) => {
             if (to === "daily") { setCopied(false); setRoute({ name: "daily" }); }
             if (to === "zen") setRoute({ name: "zen", seed: randomSeed() });

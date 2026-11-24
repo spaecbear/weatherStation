@@ -92,6 +92,18 @@ export const SOURCE_ICONS: Record<SourceId, string[]> = {
     "....k.....",
     "...kkk....",
   ],
+  thermometer: [
+    "....kk....",
+    "...kwwk...",
+    "...kwwk...",
+    "...kwwk.k.",
+    "...krrk...",
+    "...krrk.k.",
+    "...krrk...",
+    "..krrrrk..",
+    "..krrrrk..",
+    "...kkkk...",
+  ],
   radar: [
     "kkkkkkkkkk",
     "kGGGGGGGGk",

@@ -28,7 +28,7 @@ export function MenuScreen({ today, daily, career, go, devNextDay }: Props) {
   return (
     <Screen title="Weather Station" subtitle="Small town. Big sky. Your call." footer={
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <Text style={type.label}>UTC {today}</Text>
+        <Text style={type.label}>TODAY {today}</Text>
         <View style={{ width: 150 }}><Button kind="ghost" label="Dev +1 day" onPress={devNextDay} testID="dev-next-day" /></View>
       </View>
     }>

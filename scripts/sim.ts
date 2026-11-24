@@ -65,10 +65,11 @@ for (const [t, ps] of Object.entries(byType)) {
 const LOADOUTS: [string, EquipmentId[]][] = [
   ["starting kit", []],
   ["+ rain gauge", ["rainGauge"]],
+  ["+ thermometer", ["thermometer"]],
   ["+ upstream radio", ["upstreamRadio"]],
   ["+ weather balloon", ["weatherBalloon"]],
   ["+ radar", ["radar"]],
-  ["everything", ["rainGauge", "upstreamRadio", "weatherBalloon", "radar"]],
+  ["everything", ["rainGauge", "thermometer", "upstreamRadio", "weatherBalloon", "radar"]],
 ];
 const reader: Record<string, number> = {};
 const repByType: Record<string, Record<string, number>> = {};

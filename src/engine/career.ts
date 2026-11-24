@@ -165,7 +165,7 @@ export function normalizeCareer(raw: CareerState): CareerState {
     ...c,
     journal: (c.journal ?? {}) as Journal,
     calibration: c.calibration ?? emptyCalibration(),
-    equipment: (c.equipment ?? []).filter((e) => ["rainGauge", "upstreamRadio", "weatherBalloon", "radar"].includes(e)),
+    equipment: (c.equipment ?? []).filter((e) => ["rainGauge", "thermometer", "upstreamRadio", "weatherBalloon", "radar"].includes(e)),
     brokenEquipment: c.brokenEquipment ?? [],
     money: c.money ?? 0,
     trust: { ...freshTrust(), ...(c.trust ?? {}) },

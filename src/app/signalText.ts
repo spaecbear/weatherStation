@@ -9,6 +9,7 @@ export const SIGNAL_EXPLAIN: Record<SourceId, string> = {
   cowsLyingDown: "Folk wisdom says cows lie down before rain. Nobody has ever proven it.",
   upstreamRadio: "The station upriver radios when the front passes them, so you know when it'll reach town.",
   weatherBalloon: "Measures winds high above town, which get mixed down to the surface.",
+  thermometer: "Last night's low and the morning's climb point to how warm the day will get. Big help on 'will the high top' calls.",
   radar: "Sweeps the sky for the front and times its arrival. Sharper than the radio. Storms can knock it out.",
   swallowsLow: "They say swallows fly low before rain, chasing bugs pushed down by damp air.",
   redSkyMorning: "Red sky at morning, sailors take warning. Is it true here?",
@@ -52,6 +53,8 @@ export function formatSignal(s: Signal): string {
       return arrival(v, "Front");
     case "radar":
       return arrival(v, "Front on radar");
+    case "thermometer":
+      return `Warming toward ${Math.round(v)}°F`;
     case "weatherBalloon":
       return `Winds aloft ${Math.round(v)} mph`;
     default:

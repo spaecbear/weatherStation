@@ -5,7 +5,7 @@ import { FORECAST_STEPS, SEASON_PARAMS, SOURCES } from "./config";
 import { makeQuestion } from "./questions";
 import type { Day, HiddenState, Signal, Step } from "./types";
 
-type Est = "pressureTrend" | "humidity" | "frontStrength" | "frontArrivalHour" | "upperWinds";
+type Est = "pressureTrend" | "humidity" | "frontStrength" | "frontArrivalHour" | "upperWinds" | "tempBaseline";
 
 /** Precision-weighted blend of the seasonal prior and each instrument reading. Folk signs are ignored. */
 export function estimateState(day: Day, signals: readonly Signal[]): HiddenState {
@@ -16,6 +16,7 @@ export function estimateState(day: Day, signals: readonly Signal[]): HiddenState
     frontStrength: sp.frontStrength,
     frontArrivalHour: [13, 5],
     upperWinds: sp.upperWinds,
+    tempBaseline: sp.tempBaseline,
   };
   const est = {} as Record<Est, number>;
   for (const v of Object.keys(prior) as Est[]) {
@@ -32,8 +33,7 @@ export function estimateState(day: Day, signals: readonly Signal[]): HiddenState
   return {
     season: day.state.season,
     ...est,
-    tempBaseline: sp.tempBaseline[0], // no instrument reads these
-    windSpeed: sp.windSpeed[0],
+    windSpeed: sp.windSpeed[0], // no instrument reads surface wind directly
   };
 }
 

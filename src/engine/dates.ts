@@ -19,3 +19,9 @@ export function daysBetween(a: string, b: string): number {
 export function utcDateOf(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
+
+/** The device's local calendar date as YYYY-MM-DD (used for the daily reset). */
+export function localDateOf(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}

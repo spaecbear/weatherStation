@@ -62,6 +62,11 @@ describe("daily", () => {
       expect(lines[1]).toMatch(/ 3\/3 Perfect Forecast$/);
       expect(lines[2]).toBe("Bold calls: 2");
       expect(card).not.toMatch(/%|0\.\d/);
+      expect(lines[1]!.startsWith("🟩🟩🟩")).toBe(true);
+      // spoiler-free: no weather emoji, and the same card whatever the weather did
+      expect(card).not.toMatch(/[☀🌧🌦🌤🔥☁💨🍃🌫🌅🧊🌱❄🌈🌌🌑⛈🌥]/u);
+      const flipped = { ...result, score: { ...result.score, questions: result.score.questions.map((q) => ({ ...q, outcome: !q.outcome, forecast: ({ 0.1: 0.9, 0.3: 0.7, 0.5: 0.5, 0.7: 0.3, 0.9: 0.1 } as Record<number, Step>)[q.forecast]! })) } };
+      expect(shareCard(date, day, flipped)).toBe(card);
       return;
     }
   });

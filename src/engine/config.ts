@@ -60,6 +60,7 @@ export type SourceId =
   | "upstreamRadio"
   | "weatherBalloon"
   | "radar"
+  | "thermometer"
   | "swallowsLow"
   | "redSkyMorning"
   | "pineCones"
@@ -67,7 +68,7 @@ export type SourceId =
   | "frogsCroaking";
 
 /** "rainChance" is the day's true P(rain): only nature (a folk sign) can sense it directly. */
-export type HiddenVar = "pressureTrend" | "humidity" | "frontStrength" | "frontArrivalHour" | "upperWinds" | "rainChance" | "none";
+export type HiddenVar = "pressureTrend" | "humidity" | "frontStrength" | "frontArrivalHour" | "upperWinds" | "tempBaseline" | "rainChance" | "none";
 
 /**
  * Folk signs are yes/no omens about rain today. `rainWhen` says which side of
@@ -94,6 +95,7 @@ export const SOURCES: Record<SourceId, SourceDef> = {
   upstreamRadio: { reads: "frontArrivalHour", noiseSd: 1.0, unlockedAtStart: false, label: "Upstream radio" },
   weatherBalloon: { reads: "upperWinds", noiseSd: 3, unlockedAtStart: false, label: "Weather balloon" },
   radar: { reads: "frontArrivalHour", noiseSd: 0.4, unlockedAtStart: false, label: "Radar" },
+  thermometer: { reads: "tempBaseline", noiseSd: 2.5, unlockedAtStart: false, label: "Max-min thermometer" },
   // Rotating townsfolk omens (FOLK.perDay of these appear each day)
   swallowsLow: { reads: "rainChance", noiseSd: 0.3, unlockedAtStart: false, label: "Swallows", folk: { rainWhen: "above", threshold: 0.5 } },
   redSkyMorning: { reads: "frontStrength", noiseSd: 0.35, unlockedAtStart: false, label: "Morning sky", folk: { rainWhen: "above", threshold: 0.45 } },
@@ -114,9 +116,10 @@ export const FOLK = {
 };
 
 /** Equipment (Phase 4). Prices in money. */
-export type EquipmentId = "rainGauge" | "upstreamRadio" | "weatherBalloon" | "radar";
+export type EquipmentId = "rainGauge" | "thermometer" | "upstreamRadio" | "weatherBalloon" | "radar";
 export const EQUIPMENT: Record<EquipmentId, { price: number; label: string; unlocks?: SourceId; noise?: Partial<Record<SourceId, number>> }> = {
   rainGauge: { price: 120, label: "Rain gauge upgrade", noise: { hygrometer: 0.025 } },
+  thermometer: { price: 300, label: "Max-min thermometer", unlocks: "thermometer" },
   upstreamRadio: { price: 220, label: "Upstream radio", unlocks: "upstreamRadio" },
   weatherBalloon: { price: 260, label: "Weather balloon", unlocks: "weatherBalloon" },
   radar: { price: 450, label: "Radar", unlocks: "radar" },
@@ -146,7 +149,10 @@ export const PLAYBACK = {
   maxTotalSeconds: 60,
 };
 
-/** Daily Forecast (Phase 3). The daily seed and reset use the UTC date. */
+/**
+ * Daily Forecast. The seed comes from the player's local calendar date, so the day
+ * resets at local midnight; players on the same date get the same sky.
+ */
 export const DAILY = {
   epoch: "2026-01-01", // Weather Station #1
 };

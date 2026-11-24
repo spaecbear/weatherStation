@@ -26,9 +26,9 @@ export function hashString(s: string): number {
   return h >>> 0;
 }
 
-export function dailySeed(dateUtc: string): number {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateUtc)) throw new Error(`Invalid date: ${dateUtc}`);
-  return hashString(`weather-station:${dateUtc}`);
+export function dailySeed(date: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`Invalid date: ${date}`);
+  return hashString(`weather-station:${date}`);
 }
 
 /** Derive an independent sub-seed (e.g. per question or per signal) from a day seed. */

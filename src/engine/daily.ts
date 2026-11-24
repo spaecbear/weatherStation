@@ -2,7 +2,7 @@ import { DAILY } from "./config";
 import { addDays, daysBetween } from "./dates";
 import { generateDailyDay, playDay, type PlayResult } from "./day";
 import { isBold, isCorrectSide } from "./scoring";
-import type { Day, QuestionType, Step } from "./types";
+import type { Day, Step } from "./types";
 import { addToCalibration, emptyCalibration, type Calibration } from "./progression";
 
 export function dailyNumber(dateUtc: string): number {
@@ -26,7 +26,7 @@ export const newDailyState = (): DailyState => ({ version: 1, entries: {}, strea
 
 export const hasPlayedDaily = (s: DailyState, today: string): boolean => today in s.entries;
 
-/** Streak as shown today: it survives until a full UTC day is missed. */
+/** Streak as shown today: it survives until a whole calendar day is missed. */
 export function currentStreak(s: DailyState, today: string): number {
   if (!s.lastPlayedDate) return 0;
   const gap = daysBetween(s.lastPlayedDate, today);
@@ -53,25 +53,16 @@ export function dailyResult(s: DailyState, date: string): { day: Day; result: Pl
   return { day, result: playDay(day, e.calls, "daily") };
 }
 
-const OUTCOME_EMOJI: Record<QuestionType, [yes: string, no: string]> = {
-  rainToday: ["🌧️", "☀️"],
-  rainBeforeNoon: ["🌦️", "🌤️"],
-  highAbove: ["🔥", "☁️"],
-  windAbove: ["💨", "🍃"],
-  fogAtDawn: ["🌫️", "🌅"],
-  frostAtDawn: ["🧊", "🌱"],
-  snowToday: ["❄️", "☁️"],
-  allDaySun: ["☀️", "🌦️"],
-  doubleRainbow: ["🌈", "☁️"],
-  auroraNight: ["🌌", "🌑"],
-  hundredYearStorm: ["⛈️", "🌥️"],
-};
+/** One square per call: right side, wrong side, or a 50% pass. Says nothing about the weather itself. */
+export const SHARE_SQUARES = { right: "🟩", wrong: "🟥", pass: "⬜" } as const;
 
-/** Clipboard share text. Shows what the weather did and how many calls landed, never the calls. */
+/**
+ * Clipboard share text. Spoiler-free: shows how many calls landed and how bold
+ * they were, never what the weather did or what the calls were.
+ */
 export function shareCard(date: string, day: Day, result: PlayResult): string {
-  const outcomes = new Map(result.resolution.results.map((r) => [r.questionId, r.outcome]));
-  const grid = day.questions.map((q) => OUTCOME_EMOJI[q.type][outcomes.get(q.id) ? 0 : 1]).join("");
   const qs = result.score.questions;
+  const grid = qs.map((q) => (q.forecast === 0.5 ? SHARE_SQUARES.pass : isCorrectSide(q.forecast, q.outcome) ? SHARE_SQUARES.right : SHARE_SQUARES.wrong)).join("");
   const right = qs.filter((q) => isCorrectSide(q.forecast, q.outcome)).length;
   const bold = qs.filter((q) => isBold(q.forecast)).length;
   const verdict = result.score.perfectBonus > 0 ? "Perfect Forecast" : "";
