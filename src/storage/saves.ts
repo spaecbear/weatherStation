@@ -1,5 +1,5 @@
 // Versioned save/load for the career and daily states. No React imports.
-import { newDailyState, type CareerState, type DailyState } from "../engine";
+import { newDailyState, normalizeCareer, type CareerState, type DailyState } from "../engine";
 import type { KeyValueStore } from "./kv";
 
 export const KEYS = {
@@ -22,7 +22,7 @@ export class Saves {
 
   async loadCareer(): Promise<CareerState | null> {
     const c = parse<CareerState>(await this.store.getItem(KEYS.career), 1);
-    return c && typeof c.forecaster?.name === "string" ? c : null;
+    return c && typeof c.forecaster?.name === "string" ? normalizeCareer(c) : null;
   }
   saveCareer(c: CareerState): Promise<void> {
     return this.store.setItem(KEYS.career, JSON.stringify(c));

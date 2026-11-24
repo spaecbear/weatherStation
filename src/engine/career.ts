@@ -1,9 +1,10 @@
-import { CAREER, RATING } from "./config";
+import { CAREER, RATING, type EquipmentId } from "./config";
 import { generateDay, playDay, type PlayResult } from "./day";
 import { applyDecay, applyRep, isRetired, missedDays } from "./rating";
 import { mulberry32, pick, subSeed } from "./rng";
-import { STARTING_SOURCES } from "./signals";
-import type { Day, SourceId, Step } from "./types";
+import { getSignals, loadoutFor, sourcesForDay, type Loadout } from "./signals";
+import { addToCalibration, dayPay, emptyCalibration, radarBreaks, recordJournal, type Calibration, type Journal } from "./progression";
+import type { Day, Signal, SourceId, Step } from "./types";
 import { seasonForIndex } from "./weather";
 
 export interface DayRecord {
@@ -45,11 +46,13 @@ export interface CareerState {
   generation: number; // 1 = first forecaster, 2 = their apprentice, ...
   hardcore: boolean;
   forecaster: Forecaster;
-  /** Kept through succession (wiped in hardcore). Filled in Phase 4. */
-  journal: Record<string, unknown>;
+  /** Kept through succession (wiped in hardcore). */
+  journal: Journal;
+  calibration: Calibration;
   historyWall: WallEntry[];
-  /** Lost on succession. Stubs until Phase 4/5. */
-  equipment: SourceId[];
+  /** Lost on succession. */
+  equipment: EquipmentId[];
+  brokenEquipment: EquipmentId[];
   money: number;
   clientTrust: Record<string, number>;
 }
@@ -84,8 +87,10 @@ export function newCareer(opts: { name: string; hardcore: boolean; today: string
     hardcore: opts.hardcore,
     forecaster: newForecaster(opts.name, opts.today),
     journal: {},
+    calibration: emptyCalibration(),
     historyWall: [],
     equipment: [],
+    brokenEquipment: [],
     money: 0,
     clientTrust: {},
   };
@@ -123,8 +128,24 @@ export function nextCareerDay(c: CareerState): Day {
   return careerDayAt(c, c.forecaster.dayCount);
 }
 
-export function careerSources(c: CareerState): SourceId[] {
-  return [...STARTING_SOURCES, ...c.equipment.filter((e) => !STARTING_SOURCES.includes(e))];
+export const careerLoadout = (c: CareerState): Loadout => loadoutFor(c.equipment, c.brokenEquipment);
+
+/** Sources visible on a career day: working equipment plus that day's folk signs. */
+export function careerDaySources(c: CareerState, day: Day): SourceId[] {
+  return sourcesForDay(day, careerLoadout(c));
+}
+
+/** Fill fields added after a save was written (Phase 4). */
+export function normalizeCareer(raw: CareerState): CareerState {
+  const c = raw as Partial<CareerState> & CareerState;
+  return {
+    ...c,
+    journal: (c.journal ?? {}) as Journal,
+    calibration: c.calibration ?? emptyCalibration(),
+    equipment: (c.equipment ?? []).filter((e) => ["rainGauge", "upstreamRadio", "weatherBalloon", "radar"].includes(e)),
+    brokenEquipment: c.brokenEquipment ?? [],
+    money: c.money ?? 0,
+  };
 }
 
 export interface CareerDayOutcome {
@@ -133,13 +154,22 @@ export interface CareerDayOutcome {
   ratingBefore: number;
   ratingAfter: number;
   retired: boolean;
+  pay: number;
+  radarBroke: boolean;
+  /** The signals the player saw (for the debrief and journal). */
+  signals: Signal[];
 }
 
 /** Score and commit a career day. Call at submit time so quitting mid-playback can't undo it. */
 export function playCareerDay(c: CareerState, calls: Record<string, Step>, today: string): CareerDayOutcome {
   if (isCareerRetired(c, today)) throw new Error("This forecaster has retired");
   const day = nextCareerDay(c);
+  const loadout = careerLoadout(c);
+  const signals = getSignals(day, sourcesForDay(day, loadout), loadout.noise);
   const result = playDay(day, calls, "career");
+  const ev = result.resolution.events;
+  const radarBroke = c.equipment.includes("radar") && !c.brokenEquipment.includes("radar") && radarBreaks(day, ev);
+  const pay = dayPay(result.score.total);
   const ratingBefore = currentRating(c, today);
   const ratingAfter = applyRep(ratingBefore, result.score.total);
   const f = c.forecaster;
@@ -161,7 +191,15 @@ export function playCareerDay(c: CareerState, calls: Record<string, Step>, today
     perfectDays: f.perfectDays + (record.perfect ? 1 : 0),
     history: [...f.history, record].slice(-CAREER.historyLimit),
   };
-  return { career: { ...c, forecaster }, result, ratingBefore, ratingAfter, retired: isRetired(ratingAfter) };
+  const career: CareerState = {
+    ...c,
+    forecaster,
+    journal: recordJournal(c.journal, signals, ev.rains),
+    calibration: addToCalibration(c.calibration, result.score.questions),
+    money: c.money + pay,
+    brokenEquipment: radarBroke ? [...c.brokenEquipment, "radar"] : c.brokenEquipment,
+  };
+  return { career, result, ratingBefore, ratingAfter, retired: isRetired(ratingAfter), pay, radarBroke, signals };
 }
 
 function howWentOut(c: CareerState): string {
@@ -212,7 +250,9 @@ export function succeed(c: CareerState, apprenticeName: string, today: string): 
     forecaster: newForecaster(apprenticeName, today),
     historyWall: [...c.historyWall, wallEntryFor(c, today)],
     journal: c.journal,
+    calibration: c.calibration,
     equipment: [],
+    brokenEquipment: [],
     money: 0,
     clientTrust: {},
   };

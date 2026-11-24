@@ -10,7 +10,7 @@ interface Props {
   today: string;
   daily: DailyState;
   career: CareerState | null;
-  go: (to: "daily" | "career" | "zen" | "wall") => void;
+  go: (to: "daily" | "career" | "zen" | "wall" | "calibration") => void;
   devNextDay: () => void;
 }
 
@@ -32,6 +32,7 @@ export function MenuScreen({ today, daily, career, go, devNextDay }: Props) {
       <Tile testID="menu-career" icon="career" title="Career" onPress={() => go("career")}
         detail={career ? `${career.forecaster.name} · rating ${currentRating(career, today)}` : "Become the town's forecaster."} />
       <Tile testID="menu-zen" icon="zen" title="Zen" detail="Endless random days. Nothing saved." onPress={() => go("zen")} />
+      <Tile testID="menu-calibration" icon="calibration" title="Calibration" detail="How honest is your confidence?" onPress={() => go("calibration")} />
       <Tile testID="menu-wall" icon="wall" title="History Wall" detail="Every forecaster who held the station." onPress={() => go("wall")} />
     </Screen>
   );

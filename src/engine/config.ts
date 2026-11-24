@@ -58,19 +58,78 @@ export type SourceId =
   | "farmersKnee"
   | "cowsLyingDown"
   | "upstreamRadio"
-  | "weatherBalloon";
+  | "weatherBalloon"
+  | "radar"
+  | "swallowsLow"
+  | "redSkyMorning"
+  | "pineCones"
+  | "spiderWebs"
+  | "frogsCroaking";
 
-export type HiddenVar = "pressureTrend" | "humidity" | "frontStrength" | "frontArrivalHour" | "upperWinds" | "none";
+/** "rainChance" is the day's true P(rain): only nature (a folk sign) can sense it directly. */
+export type HiddenVar = "pressureTrend" | "humidity" | "frontStrength" | "frontArrivalHour" | "upperWinds" | "rainChance" | "none";
 
-export const SOURCES: Record<SourceId, { reads: HiddenVar; noiseSd: number; unlockedAtStart: boolean; label: string }> = {
+/**
+ * Folk signs are yes/no omens about rain today. `rainWhen` says which side of
+ * `threshold` the noisy reading must fall on for the sign to "say rain".
+ * Their real reliability is never stored: it emerges from `reads` + `noiseSd`
+ * (see `trueFolkReliability`), and the folklore journal has to discover it.
+ */
+export interface FolkRule { rainWhen: "above" | "below"; threshold: number }
+
+export interface SourceDef {
+  reads: HiddenVar;
+  noiseSd: number;
+  unlockedAtStart: boolean;
+  label: string;
+  folk?: FolkRule;
+}
+
+export const SOURCES: Record<SourceId, SourceDef> = {
   barometer: { reads: "pressureTrend", noiseSd: 0.3, unlockedAtStart: true, label: "Barometer" },
-  hygrometer: { reads: "humidity", noiseSd: 0.04, unlockedAtStart: true, label: "Hygrometer" },
+  hygrometer: { reads: "humidity", noiseSd: 0.08, unlockedAtStart: true, label: "Hygrometer" },
   skyReading: { reads: "frontStrength", noiseSd: 0.15, unlockedAtStart: true, label: "Sky reading" },
-  farmersKnee: { reads: "humidity", noiseSd: 0.2, unlockedAtStart: true, label: "Farmer's knee" },
-  cowsLyingDown: { reads: "none", noiseSd: 0.3, unlockedAtStart: true, label: "Cows lying down" },
+  farmersKnee: { reads: "humidity", noiseSd: 0.3, unlockedAtStart: true, label: "Farmer's knee", folk: { rainWhen: "above", threshold: 0.62 } },
+  cowsLyingDown: { reads: "none", noiseSd: 0.3, unlockedAtStart: true, label: "Cows lying down", folk: { rainWhen: "above", threshold: 0.5 } },
   upstreamRadio: { reads: "frontArrivalHour", noiseSd: 1.0, unlockedAtStart: false, label: "Upstream radio" },
   weatherBalloon: { reads: "upperWinds", noiseSd: 3, unlockedAtStart: false, label: "Weather balloon" },
+  radar: { reads: "frontArrivalHour", noiseSd: 0.4, unlockedAtStart: false, label: "Radar" },
+  // Rotating townsfolk omens (FOLK.perDay of these appear each day)
+  swallowsLow: { reads: "rainChance", noiseSd: 0.3, unlockedAtStart: false, label: "Swallows", folk: { rainWhen: "above", threshold: 0.5 } },
+  redSkyMorning: { reads: "frontStrength", noiseSd: 0.35, unlockedAtStart: false, label: "Morning sky", folk: { rainWhen: "above", threshold: 0.45 } },
+  pineCones: { reads: "rainChance", noiseSd: 0.06, unlockedAtStart: false, label: "Pine cones", folk: { rainWhen: "above", threshold: 0.5 } },
+  spiderWebs: { reads: "pressureTrend", noiseSd: 2.8, unlockedAtStart: false, label: "Spider webs", folk: { rainWhen: "below", threshold: -0.3 } },
+  frogsCroaking: { reads: "none", noiseSd: 0.3, unlockedAtStart: false, label: "Frogs", folk: { rainWhen: "above", threshold: 0.5 } },
 };
+
+export const ROTATING_FOLK: SourceId[] = ["swallowsLow", "redSkyMorning", "pineCones", "spiderWebs", "frogsCroaking"];
+
+export const FOLK = {
+  perDay: 2, // rotating folk signs shown each day, on top of the knee and the cows
+  minSamples: 20, // journal says "Unknown" until then
+  settledSamples: 300, // below this the tier is shown as an early read (tiers are ~6 points apart; ±3 pts of noise at 300)
+  // Agreement-rate cut-offs for journal tiers. Honest odds cap any yes/no
+  // rain call at ~69% agreement, so "Trusty" starts well below 100%.
+  tiers: { hunch: 0.525, decent: 0.585, trusty: 0.645 },
+};
+
+/** Equipment (Phase 4). Prices in money. */
+export type EquipmentId = "rainGauge" | "upstreamRadio" | "weatherBalloon" | "radar";
+export const EQUIPMENT: Record<EquipmentId, { price: number; label: string; unlocks?: SourceId; noise?: Partial<Record<SourceId, number>> }> = {
+  rainGauge: { price: 120, label: "Rain gauge upgrade", noise: { hygrometer: 0.025 } },
+  upstreamRadio: { price: 220, label: "Upstream radio", unlocks: "upstreamRadio" },
+  weatherBalloon: { price: 260, label: "Weather balloon", unlocks: "weatherBalloon" },
+  radar: { price: 450, label: "Radar", unlocks: "radar" },
+};
+
+export const RADAR = {
+  repairCost: 60,
+  breakChance: 0.2, // per stormy day
+  stormyFront: 0.6, // a stormy day = it rains and frontStrength ≥ this
+};
+
+/** Career pay: rep gain scaled, with a floor so bad days still pay a little. */
+export const MONEY = { perRep: 0.5, floor: 5 };
 
 export const TIMELINE = { startHour: 6, endHour: 21, peakTempHour: 15, dawnLowOffset: 9 };
 
@@ -95,4 +154,5 @@ export const DAILY = {
 export const CAREER = {
   daysPerSeason: 28,
   historyLimit: 1000, // day records kept per forecaster
+  calibrationMin: 10, // samples per step before the calibration chart shows a bar
 };

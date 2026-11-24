@@ -1,5 +1,6 @@
 import {
-  FORECAST_STEPS, generateDay, playDay, seasonForIndex, mulberry32, type Day, type Step,
+  FOLK_SIGNS, FORECAST_STEPS, generateDay, getSignals, loadoutFor, playDay, readerCalls, seasonForIndex, mulberry32,
+  tierForRate, trueFolkReliability, type Day, type EquipmentId, type Step,
 } from "../src/engine";
 
 const DAYS = Number(process.argv[2] ?? 10_000);
@@ -58,4 +59,48 @@ for (const [t, ps] of Object.entries(byType)) {
   const mean = ps.reduce((a, b) => a + b, 0) / ps.length;
   const mid = ps.filter((p) => p >= 0.05 && p <= 0.95).length / ps.length;
   console.log(`${t.padEnd(15)} mean ${mean.toFixed(2)}  in-range ${(100 * mid).toFixed(0)}%  n=${ps.length}`);
+}
+
+// ---- Phase 4: does equipment help a forecaster who only sees the signals? ----
+const LOADOUTS: [string, EquipmentId[]][] = [
+  ["starting kit", []],
+  ["+ rain gauge", ["rainGauge"]],
+  ["+ upstream radio", ["upstreamRadio"]],
+  ["+ weather balloon", ["weatherBalloon"]],
+  ["+ radar", ["radar"]],
+  ["everything", ["rainGauge", "upstreamRadio", "weatherBalloon", "radar"]],
+];
+const reader: Record<string, number> = {};
+const repByType: Record<string, Record<string, number>> = {};
+const typeCounts: Record<string, number> = {};
+const m2 = mulberry32(42);
+const days2: Day[] = Array.from({ length: DAYS }, (_, i) => generateDay(Math.floor(m2() * 2 ** 32), seasonForIndex(Math.floor(i / 90))));
+for (const d of days2) for (const q of d.questions) typeCounts[q.type] = (typeCounts[q.type] ?? 0) + 1;
+for (const [name, eq] of LOADOUTS) {
+  const lo = loadoutFor(eq);
+  let total = 0;
+  const per: Record<string, number> = {};
+  for (const d of days2) {
+    const { score } = playDay(d, readerCalls(d, getSignals(d, lo.sources, lo.noise)), "daily");
+    total += score.total;
+    for (const q of score.questions) {
+      const t = d.questions.find((x) => x.id === q.questionId)!.type;
+      per[t] = (per[t] ?? 0) + q.rep;
+    }
+  }
+  reader[name] = total / DAYS;
+  repByType[name] = per;
+}
+console.log("\nSignal-reading bot by equipment (avg rep/day; per-question avg by type)");
+const types = Object.keys(typeCounts);
+console.log("loadout            rep/day  " + types.map((t) => t.slice(0, 10).padStart(11)).join(""));
+for (const [name] of LOADOUTS) {
+  console.log(`${name.padEnd(18)} ${reader[name]!.toFixed(2).padStart(7)}  ` + types.map((t) => (repByType[name]![t]! / typeCounts[t]!).toFixed(2).padStart(11)).join(""));
+}
+console.log(`(oracle ceiling, knows true odds: ${(totals.oracle!.rep / DAYS).toFixed(2)} on a different day set)`);
+
+console.log("\nFolk signs: true agreement with 'rain today' (hidden from the player)");
+for (const s of FOLK_SIGNS) {
+  const r = trueFolkReliability(s);
+  console.log(`${s.padEnd(15)} ${(100 * r).toFixed(1)}%  ${tierForRate(r)}`);
 }

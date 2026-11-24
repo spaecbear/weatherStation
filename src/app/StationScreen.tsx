@@ -17,7 +17,7 @@ export function StationScreen({ m, subtitle, onLeave }: { m: RoundModel; subtitl
       }
     >
       <Text style={[type.body, { color: colors.muted }]}>Tap a reading to see what it tells you.</Text>
-      {m.signals.map((sig) => <SignalCard key={sig.source} signal={sig} />)}
+      {m.signals.map((sig) => <SignalCard key={sig.source} signal={sig} tier={m.tiers?.[sig.source]} />)}
     </Screen>
   );
 }

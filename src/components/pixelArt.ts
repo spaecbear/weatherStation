@@ -4,7 +4,7 @@ import type { Palette } from "./Sprite";
 
 export const ICON_PALETTE: Palette = {
   k: "#101216", w: "#e9edf2", g: "#9aa4b1", s: "#56606d", b: "#6f98c2", B: "#9cc0e2",
-  r: "#d65a4a", y: "#f3cd55", p: "#e7a6a0", n: "#7a5a3a", G: "#6aa95a",
+  r: "#d65a4a", y: "#f3cd55", Y: "#fff1a8", p: "#e7a6a0", n: "#7a5a3a", G: "#6aa95a",
 };
 
 export const SOURCE_ICONS: Record<SourceId, string[]> = {
@@ -92,9 +92,130 @@ export const SOURCE_ICONS: Record<SourceId, string[]> = {
     "....k.....",
     "...kkk....",
   ],
+  radar: [
+    "kkkkkkkkkk",
+    "kGGGGGGGGk",
+    "kGGGkGGGGk",
+    "kGGkGkGGGk",
+    "kGkGGGyGGk",
+    "kGGkGkGGGk",
+    "kGGGkGGGGk",
+    "kGGGGGGGGk",
+    "kkkkkkkkkk",
+    "...kkkk...",
+  ],
+  swallowsLow: [
+    "..........",
+    "k.......k.",
+    "kk.....kk.",
+    ".kkk.kkk..",
+    "..kkwkk...",
+    "...kkk....",
+    "..........",
+    "GGGGGGGGGG",
+    "GnGGGnGGGn",
+    "nnnnnnnnnn",
+  ],
+  redSkyMorning: [
+    "rrrrrrrrrr",
+    "rrrrrrrrrr",
+    "pppppppppp",
+    "pppyyyyppp",
+    "yyyyyyyyyy",
+    "..yyyyyy..",
+    "kkkkkkkkkk",
+    "ssssssssss",
+    "kskskskssk",
+    "ssssssssss",
+  ],
+  pineCones: [
+    "....kk....",
+    "...knnk...",
+    "..knknnk..",
+    "..knnknk..",
+    ".knknnknk.",
+    ".knnknnnk.",
+    ".knknnknk.",
+    "..knnknk..",
+    "...knnk...",
+    "....kk....",
+  ],
+  spiderWebs: [
+    "k...k...k.",
+    ".k..k..k..",
+    "..kkkkk...",
+    "kkk.k.kkkk",
+    "..kkkkk...",
+    ".k..k..k..",
+    "k...k...k.",
+    "....k.....",
+    "...kkk....",
+    "...kkk....",
+  ],
+  frogsCroaking: [
+    "..........",
+    ".kk...kk..",
+    "kwkk.kkwk.",
+    "kGGGGGGGk.",
+    "kGGGGGGGGk",
+    "kGkkkkkGGk",
+    ".kGGGGGGk.",
+    "kGGk..kGGk",
+    "kkk....kkk",
+    "..........",
+  ],
 };
 
+export const RAIN_GAUGE = [
+  "k......k",
+  "kbbbbbbk",
+  "kBwwwwwk",
+  "kBkwwwwk",
+  "kBwwwwwk",
+  "kBkbbbbk",
+  "kbbbbbbk",
+  "kBkbbbbk",
+  "kbbbbbbk",
+  ".kkkkkk.",
+];
+
+export const COIN = [
+  "..kkkk..",
+  ".kyyyyk.",
+  "kyYyyyyk",
+  "kyYykyyk",
+  "kyYykyyk",
+  "kyyyyyyk",
+  ".kyyyyk.",
+  "..kkkk..",
+];
+
+export const BOOK = [
+  "kkkkkkkkk.",
+  "knnnnnnnkk",
+  "knyyyyynkk",
+  "knnnnnnnkk",
+  "knnnnnnnkk",
+  "knnnnnnnkk",
+  "knnnnnnnkk",
+  "kkkkkkkkkk",
+  ".kwwwwwwwk",
+  "..kkkkkkkk",
+];
+
+export const CHART = [
+  "k.........",
+  "k......bb.",
+  "k......bb.",
+  "k...bb.bb.",
+  "k...bb.bb.",
+  "kbb.bb.bb.",
+  "kbb.bb.bb.",
+  "kkkkkkkkkk",
+];
+
 export const MENU_ICONS = {
+  calibration: CHART,
   daily: [
     ".k....k.",
     "kkkkkkkk",

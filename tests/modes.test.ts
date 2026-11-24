@@ -119,7 +119,7 @@ describe("career", () => {
 
   it("succession keeps journal + wall, resets forecaster, equipment, money, trust", () => {
     let c = withRating(fresh(), 210, D0);
-    c = { ...c, journal: { swallows: { samples: 4 } }, equipment: ["upstreamRadio"], money: 120, clientTrust: { farmer: 3 } };
+    c = { ...c, journal: { swallowsLow: { samples: 40, agreed: 30 } }, equipment: ["upstreamRadio"], brokenEquipment: ["radar"], money: 120, clientTrust: { farmer: 3 } };
     const out = playCareerDay(c, wrongCalls(c), D0);
     expect(() => succeed(c, "Bram", D0)).toThrow(); // not retired yet
     const next = succeed(out.career, "Bram", addDays(D0, 1))!;
@@ -127,8 +127,11 @@ describe("career", () => {
     expect(next.forecaster.name).toBe("Bram");
     expect(currentRating(next, addDays(D0, 1))).toBe(500);
     expect(next.forecaster.dayCount).toBe(0);
-    expect(next.journal).toEqual({ swallows: { samples: 4 } });
+    expect(next.journal).toEqual(out.career.journal); // kept as-is
+    expect(next.journal.swallowsLow!.samples).toBeGreaterThanOrEqual(40);
+    expect(next.calibration).toEqual(out.career.calibration);
     expect(next.equipment).toEqual([]);
+    expect(next.brokenEquipment).toEqual([]);
     expect(next.money).toBe(0);
     expect(next.clientTrust).toEqual({});
     expect(next.historyWall).toHaveLength(1);
@@ -139,7 +142,7 @@ describe("career", () => {
   });
 
   it("hardcore: full wipe on retirement", () => {
-    const c = withRating({ ...fresh(), hardcore: true, journal: { x: 1 } }, 210, D0);
+    const c = withRating({ ...fresh(), hardcore: true, journal: { pineCones: { samples: 50, agreed: 40 } } }, 210, D0);
     const out = playCareerDay(c, wrongCalls(c), D0);
     expect(succeed(out.career, "Bram", D0)).toBeNull();
   });

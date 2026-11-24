@@ -7,8 +7,8 @@ import { PressStart2P_400Regular } from "@expo-google-fonts/press-start-2p";
 import { VT323_400Regular } from "@expo-google-fonts/vt323";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
-  careerSources, currentStreak, dailyNumber, dailyResult, generateDailyDay, generateDay, isCareerRetired, mulberry32,
-  newCareer, nextCareerDay, pick, playCareerDay, playDay, SEASONS, STARTING_SOURCES, shareCard, submitDaily, succeed,
+  BASE_LOADOUT, buy, careerLoadout, currentStreak, dailyCalibration, FOLK_SIGNS, journalTier, mergeCalibration, repair, dailyNumber, dailyResult, generateDailyDay, generateDay, isCareerRetired, mulberry32,
+  newCareer, nextCareerDay, pick, playCareerDay, playDay, SEASONS, shareCard, submitDaily, succeed, emptyCalibration,
   type CareerDayOutcome, type CareerState, type DailyState, type Day,
 } from "../engine";
 import { saves } from "../storage";
@@ -16,9 +16,10 @@ import { Body, Button, Card, H2, Panel } from "../components/ui";
 import { MenuScreen } from "./MenuScreen";
 import { Round } from "./Round";
 import { CareerSetupScreen, FarewellScreen, HistoryWallScreen, OfficeScreen } from "./CareerScreens";
+import { CalibrationScreen, ShopScreen, JournalScreen, Wallet } from "./ProgressScreens";
 import { shiftClock, todayUtc } from "./clock";
 import { colors } from "./theme";
-import { signed } from "./signalText";
+import { money, signed } from "./signalText";
 
 type Route =
   | { name: "menu" }
@@ -28,7 +29,10 @@ type Route =
   | { name: "office" }
   | { name: "careerRound"; day: Day }
   | { name: "farewell" }
-  | { name: "wall" };
+  | { name: "wall"; back: "menu" | "office" }
+  | { name: "shop" }
+  | { name: "journal" }
+  | { name: "calibration"; back: "menu" | "office" };
 
 const randomSeed = () => Math.floor(Math.random() * 2 ** 32);
 const zenDay = (seed: number) => generateDay(seed, pick(mulberry32(seed ^ 0x5eaa), SEASONS));
@@ -77,7 +81,8 @@ export default function App() {
           go={(to) => {
             if (to === "daily") { setCopied(false); setRoute({ name: "daily" }); }
             if (to === "zen") setRoute({ name: "zen", seed: randomSeed() });
-            if (to === "wall") setRoute({ name: "wall" });
+            if (to === "wall") setRoute({ name: "wall", back: "menu" });
+            if (to === "calibration") setRoute({ name: "calibration", back: "menu" });
             if (to === "career") setRoute(!career ? { name: "careerSetup" } : isCareerRetired(career, today) ? { name: "farewell" } : { name: "office" });
           }}
         />
@@ -90,7 +95,7 @@ export default function App() {
       screen = (
         <Round
           key={`daily-${today}`}
-          day={todaysDaily} mode="daily" sources={STARTING_SOURCES} existing={existing}
+          day={todaysDaily} mode="daily" loadout={BASE_LOADOUT} existing={existing}
           subtitle={`Daily Forecast #${dailyNumber(today)}`}
           onLeave={toMenu}
           commit={(calls) => {
@@ -110,7 +115,7 @@ export default function App() {
       screen = (
         <Round
           key={`zen-${route.seed}`}
-          day={zenDay(route.seed)} mode="zen" sources={STARTING_SOURCES}
+          day={zenDay(route.seed)} mode="zen" loadout={BASE_LOADOUT}
           subtitle="Zen"
           onLeave={toMenu}
           commit={(calls) => playDay(zenDay(route.seed), calls, "zen")}
@@ -139,7 +144,9 @@ export default function App() {
         <OfficeScreen
           career={career!} today={today}
           onForecast={() => { setLastCareerDay(null); setRoute({ name: "careerRound", day: nextCareerDay(career!) }); }}
-          onWall={() => setRoute({ name: "wall" })}
+          onNav={(to) => setRoute(
+            to === "wall" ? { name: "wall", back: "office" } : to === "calibration" ? { name: "calibration", back: "office" } : to === "shop" ? { name: "shop" } : { name: "journal" },
+          )}
           onMenu={toMenu}
         />
       );
@@ -150,7 +157,8 @@ export default function App() {
       screen = (
         <Round
           key={`career-${route.day.seed}`}
-          day={route.day} mode="career" sources={careerSources(career!)}
+          day={route.day} mode="career" loadout={careerLoadout(career!)}
+          tiers={Object.fromEntries(FOLK_SIGNS.map((f) => [f, journalTier(career!.journal[f])]))}
           subtitle={`${career!.forecaster.name} · day ${career!.forecaster.dayCount + (out ? 0 : 1)}`}
           onLeave={() => setRoute({ name: "office" })}
           commit={(calls) => {
@@ -162,6 +170,11 @@ export default function App() {
           verdictExtra={out ? (
             <Card style={{ gap: 4 }}>
               <H2>STANDING {out.ratingBefore} → {out.ratingAfter}  <H2 color={out.ratingAfter >= out.ratingBefore ? colors.good : colors.bad}>({signed(out.ratingAfter - out.ratingBefore)})</H2></H2>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                <Body>Pay today: {money(out.pay)}</Body>
+                <Wallet amount={out.career.money} />
+              </View>
+              {out.radarBroke ? <Body>A lightning strike knocked out the radar. Repair it at the shop.</Body> : null}
               {out.retired ? <Body>The council has called a meeting...</Body> : null}
             </Card>
           ) : null}
@@ -187,7 +200,28 @@ export default function App() {
       break;
 
     case "wall":
-      screen = <HistoryWallScreen career={career} today={today} onBack={toMenu} />;
+      screen = <HistoryWallScreen career={career} today={today} onBack={route.back === "office" ? () => setRoute({ name: "office" }) : toMenu} />;
+      break;
+
+    case "shop":
+      screen = (
+        <ShopScreen career={career!} onBack={() => setRoute({ name: "office" })}
+          onBuy={(id) => updateCareer(buy(career!, id))}
+          onRepair={(id) => updateCareer(repair(career!, id))} />
+      );
+      break;
+
+    case "journal":
+      screen = <JournalScreen career={career!} onBack={() => setRoute({ name: "office" })} />;
+      break;
+
+    case "calibration":
+      screen = (
+        <CalibrationScreen
+          cal={mergeCalibration(career?.calibration ?? emptyCalibration(), dailyCalibration(daily))}
+          onBack={route.back === "office" ? () => setRoute({ name: "office" }) : toMenu}
+        />
+      );
       break;
   }
 

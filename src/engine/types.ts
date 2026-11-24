@@ -38,6 +38,8 @@ export interface Signal {
   label: string;
   reads: HiddenVar;
   value: number;
+  /** Noise the reading was taken with (after upgrades). */
+  noiseSd: number;
 }
 
 export interface QuestionResolution {
@@ -56,8 +58,18 @@ export interface HourSnapshot {
   fog: boolean;
 }
 
+/** What the weather actually did, whether or not a question asked about it. */
+export interface DayEvents {
+  rains: boolean;
+  rainsBeforeNoon: boolean;
+  foggy: boolean;
+  high: number;
+  peakWind: number;
+}
+
 export interface Resolution {
   results: QuestionResolution[];
+  events: DayEvents;
   timeline: HourSnapshot[];
 }
 

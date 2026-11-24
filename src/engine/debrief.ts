@@ -52,6 +52,7 @@ const VAR_NAMES: Record<Var, string> = {
   upperWinds: "winds aloft",
   tempBaseline: "the air mass warmth",
   windSpeed: "surface wind",
+  rainChance: "the feel of the air",
 };
 
 export interface Debrief {
@@ -66,7 +67,7 @@ export interface Debrief {
 }
 
 function bestSourceFor(v: Var, among: readonly SourceId[]): SourceId | null {
-  const c = among.filter((id) => SOURCES[id].reads === v).sort((a, b) => SOURCES[a].noiseSd - SOURCES[b].noiseSd);
+  const c = among.filter((id) => SOURCES[id].reads === v && !SOURCES[id].folk).sort((a, b) => SOURCES[a].noiseSd - SOURCES[b].noiseSd);
   return c[0] ?? null;
 }
 

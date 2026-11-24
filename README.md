@@ -2,7 +2,7 @@
 
 A cozy, turn-based forecasting game. See `Weather Station Design Doc.pdf` and `weather-station-build-plan.md`.
 
-**Status: Phases 1–3 complete, plus an early 16-bit art pass.** The engine is pure TypeScript in `src/engine`; the Expo app is in `src/app`.
+**Status: Phases 1–4 complete, plus an early 16-bit art pass.** The engine is pure TypeScript in `src/engine`; the Expo app is in `src/app`.
 
 ```bash
 npm install
@@ -99,3 +99,60 @@ The flow is: Station (signal cards, tap for an explanation) → Forecast (5-step
   - a ridge and the town, with windows that light up at dusk or in a storm
   - the station windsock, which goes limp, half or full with the wind
   - a pixel thermometer
+
+## Phase 4: progression
+
+All numbers are in `config.ts` (`EQUIPMENT`, `RADAR`, `MONEY`, `FOLK`, `CAREER.calibrationMin`).
+
+- **Money:** each career day pays `max(5, round(0.5 × day's rep))`. Bad days still pay $5. A good season buys the full kit in about 80–100 days.
+- **Equipment** (shop in the office):
+
+  | Item | Price | Effect |
+  |---|---|---|
+  | Rain gauge upgrade | $120 | Hygrometer noise drops from 0.08 to 0.025 |
+  | Upstream radio | $220 | Unlocks the radio |
+  | Weather balloon | $260 | Unlocks the balloon |
+  | Radar | $450 | Front arrival with 0.4 h noise (radio: 1 h). 20% chance to break on a stormy day (rain + strong front); $60 to repair |
+
+  An upgrade scales the *same* seeded noise draw, so a better instrument reads the same day more accurately.
+- **Folk signs:**
+  - The farmer's knee and the cows are always shown. Two of five rotating omens appear each day: swallows, morning sky, pine cones, spider webs, frogs.
+  - Each reads a hidden variable (or nothing) with its own noise and shows as a yes/no "says rain".
+  - Their true reliability is never stored; it emerges from the model (`trueFolkReliability`).
+  - Pine cones and swallows sense the day's overall rain odds (`rainChance`), which is the only way an omen can be truly good.
+- **Folklore journal:** every career day records whether each omen you saw agreed with "rain today".
+  - Tiers, by agreement rate: **Nonsense** <52.5%, **Hunch** <58.5%, **Decent** <64.5%, **Trusty** above that.
+  - Because the odds are honest, even a perfect yes/no rain call only agrees ~69% of the time, so Trusty doesn't mean 90%.
+  - The journal shows "Unknown" below 20 samples and "early read" below 300.
+  - It survives succession and is wiped only in hardcore.
+- **Calibration chart:**
+  - One bar per step, counting Career and Daily calls. A bar appears after 10 calls at that step.
+  - A gold tick shows what you said. Tap a bar for "When you said 70%, it happened 62% of the time." A table row under the axis repeats the numbers.
+  - It's kept through succession.
+
+### Do upgrades help? (sim, 10,000 days, signal-reading bot)
+
+`engine/estimate.ts` is a bot that sees only the station's signals. It blends them with the seasonal prior and calls the nearest step.
+
+```
+Signal-reading bot by equipment (avg rep/day; per-question avg by type)
+loadout            rep/day    windAbove rainBefore  rainToday  highAbove  fogAtDawn
+starting kit         13.69         1.18       7.71       4.28       1.18       3.87
++ rain gauge         14.19         1.18       7.81       4.40       1.18       4.29
++ upstream radio     15.23         1.18      10.10       4.28       1.18       3.87
++ weather balloon    14.56         2.22       7.71       4.28       1.18       3.87
++ radar              15.26         1.18      10.13       4.28       1.18       3.87
+everything           16.56         2.22      10.14       4.40       1.18       4.29
+(oracle ceiling, knows true odds: 27.72 on a different day set)
+
+Folk signs: true agreement with 'rain today' (hidden from the player)
+farmersKnee     55.3%  Hunch
+cowsLyingDown   49.8%  Nonsense
+swallowsLow     61.0%  Decent
+redSkyMorning   55.6%  Hunch
+pineCones       68.5%  Trusty
+spiderWebs      55.6%  Hunch
+frogsCroaking   49.9%  Nonsense
+```
+
+Each upgrade lifts the question types it should. Radar and radio overlap: radar's extra precision barely helps, because rain timing is already fuzzy at the hour scale. Phase 5's storm events could give radar a distinct job. No instrument reads the temperature baseline, so "high above" questions are stuck near guesswork.

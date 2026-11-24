@@ -62,7 +62,8 @@ export function resolveDay(day: Day): Resolution {
     }
   });
 
-  return { results, timeline: buildTimeline(day, { rains, rainsBeforeNoon, foggy, high, peakWind }) };
+  const events = { rains, rainsBeforeNoon, foggy, high, peakWind };
+  return { results, events, timeline: buildTimeline(day, events) };
 }
 
 function buildTimeline(

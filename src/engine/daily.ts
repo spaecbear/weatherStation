@@ -3,6 +3,7 @@ import { addDays, daysBetween } from "./dates";
 import { generateDailyDay, playDay, type PlayResult } from "./day";
 import { isBold, isCorrectSide } from "./scoring";
 import type { Day, QuestionType, Step } from "./types";
+import { addToCalibration, emptyCalibration, type Calibration } from "./progression";
 
 export function dailyNumber(dateUtc: string): number {
   return daysBetween(DAILY.epoch, dateUtc) + 1;
@@ -73,4 +74,11 @@ export function shareCard(date: string, day: Day, result: PlayResult): string {
     `${grid} ${right}/${qs.length}${verdict ? ` ${verdict}` : ""}`,
     `Bold calls: ${bold}`,
   ].join("\n");
+}
+
+/** Calibration counts from every daily played (recomputed from the seeds). */
+export function dailyCalibration(s: DailyState): Calibration {
+  let cal = emptyCalibration();
+  for (const date of Object.keys(s.entries)) cal = addToCalibration(cal, dailyResult(s, date)!.result.score.questions);
+  return cal;
 }

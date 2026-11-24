@@ -3,6 +3,7 @@ import { Switch, Text, View } from "react-native";
 import { careerSeason, currentRating, RATING, suggestName, townTalk, wallEntryFor, type CareerState, type WallEntry } from "../engine";
 import { Body, Button, Card, Field, H2, Screen } from "../components/ui";
 import { colors, type } from "./theme";
+import { Wallet } from "./ProgressScreens";
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 
@@ -34,7 +35,9 @@ function RatingBar({ rating }: { rating: number }) {
   );
 }
 
-export function OfficeScreen({ career, today, onForecast, onWall, onMenu }: { career: CareerState; today: string; onForecast: () => void; onWall: () => void; onMenu: () => void }) {
+export type OfficeNav = "shop" | "journal" | "calibration" | "wall";
+
+export function OfficeScreen({ career, today, onForecast, onNav, onMenu }: { career: CareerState; today: string; onForecast: () => void; onNav: (to: OfficeNav) => void; onMenu: () => void }) {
   const f = career.forecaster;
   const rating = currentRating(career, today);
   const talk = townTalk(career, today);
@@ -42,7 +45,12 @@ export function OfficeScreen({ career, today, onForecast, onWall, onMenu }: { ca
     <Screen title="The Office" subtitle={`${f.name}, the town's ${ordinal(career.generation)} forecaster${career.hardcore ? " · Hardcore" : ""}`}
       footer={<><Button testID="career-forecast" label={`Forecast day ${f.dayCount + 1}`} onPress={onForecast} />
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <View style={{ flex: 1 }}><Button kind="ghost" label="History wall" onPress={onWall} /></View>
+          <View style={{ flex: 1 }}><Button testID="nav-shop" kind="ghost" label="Shop" onPress={() => onNav("shop")} /></View>
+          <View style={{ flex: 1 }}><Button testID="nav-journal" kind="ghost" label="Journal" onPress={() => onNav("journal")} /></View>
+        </View>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={{ flex: 1 }}><Button testID="nav-calibration" kind="ghost" label="Chart" onPress={() => onNav("calibration")} /></View>
+          <View style={{ flex: 1 }}><Button kind="ghost" label="Wall" onPress={() => onNav("wall")} /></View>
           <View style={{ flex: 1 }}><Button kind="ghost" label="Menu" onPress={onMenu} /></View>
         </View></>}>
       {talk ? (
@@ -59,6 +67,13 @@ export function OfficeScreen({ career, today, onForecast, onWall, onMenu }: { ca
         <RatingBar rating={rating} />
         <Body muted>The council retires a forecaster at {RATING.retirementAt}. Only bad calls can get you there.</Body>
       </Card>
+      <Card style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <H2>SAVINGS</H2>
+        <Wallet amount={career.money} />
+      </Card>
+      {career.brokenEquipment.length ? (
+        <Card tone="sunk"><Body>The radar is out since the last storm. Repair it at the shop.</Body></Card>
+      ) : null}
       <Card style={{ gap: 4 }}>
         <Body>Days forecast: {f.dayCount}</Body>
         <Body>Perfect days: {f.perfectDays}</Body>
